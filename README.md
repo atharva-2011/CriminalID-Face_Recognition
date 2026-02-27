@@ -193,14 +193,17 @@ The model is trained to identify **13 individuals**:
 ---
 
 ## 📦 Requirements
-
 ```
-streamlit==1.32.0
-tensorflow==2.15.0
-opencv-python-headless==4.9.0.80
-pillow==10.2.0
-pandas==2.2.0
-numpy==1.26.4
+tensorflow-cpu==2.20.0
+streamlit==1.40.0
+opencv-python-headless==4.10.0.84
+pillow==11.1.0
+pandas==2.2.3
+numpy==2.1.0
+scikit-learn==1.5.2
+matplotlib==3.9.2
+seaborn==0.13.2
+```
 ```
 
 ---
