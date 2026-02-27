@@ -10,7 +10,7 @@
 
 **An AI-powered criminal face recognition web app built with Transfer Learning and deployed via Streamlit.**
 
-[🚀 Live Demo]([https://criminalid-facerecognition.streamlit.app/]) • [📓 Training Notebook](Criminal_Face_Recognition_Using_Transfer_Learning.ipynb) • [📊 Dataset Notebook](Dataset_Creation.ipynb)
+[🚀 Live Demo](([https://criminalid-facerecognition.streamlit.app/])) • [📓 Training Notebook](Criminal_Face_Recognition_Using_Transfer_Learning.ipynb) • [📊 Dataset Notebook](Dataset_Creation.ipynb)
 
 
 </div>
