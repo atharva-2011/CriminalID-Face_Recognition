@@ -151,7 +151,7 @@ Atharva_Ayachit,Fraud,Arrested,21,Indian,Mumbai 2024,Financial crimes
 - **Base Model:** Transfer Learning (MobileNetV2 / EfficientNet)
 - **Training Phase 1:** Base layers frozen → only top layers trained (epochs 1–12)
 - **Training Phase 2:** Fine-tuning — top layers of base model unfrozen (epoch 13 onwards)
-- **Input Size:** 224 × 224 × 3
+- **Input Size:** 96 × 96 × 3
 - **Output:** Softmax over 13 classes
 - **Optimizer:** Adam with learning rate scheduling
 - **Data Augmentation:** Rotation, flip, zoom, brightness shifts
