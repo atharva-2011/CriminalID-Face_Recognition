@@ -299,7 +299,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()
 @st.cache_resource
 def warmup_model(model):
     dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
-    model.predict(dummy,training=False)
+    model(dummy,training=False)
 
 @st.cache_resource
 def load_model_cached(path):
