@@ -654,9 +654,19 @@ document.getElementById('tbody').addEventListener('click',function(e){{
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  BANNER
+#  BANNER + CONFIGURE BUTTON
 # ══════════════════════════════════════════════════════════════════════════
-st.markdown(f"""
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Persist config in session state
+if 'cfg_model'     not in st.session_state: st.session_state.cfg_model     = "criminal_recognition_model.keras"
+if 'cfg_csv'       not in st.session_state: st.session_state.cfg_csv       = "criminals_info.csv"
+if 'cfg_cn'        not in st.session_state: st.session_state.cfg_cn        = "class_names.txt"
+if 'cfg_threshold' not in st.session_state: st.session_state.cfg_threshold = 0.80
+
+b1, b2 = st.columns([0.82, 0.18])
+with b1:
+    st.markdown(f"""
 <div class="banner-wrap">
   <div class="ctlx"></div><div class="cbrx"></div>
   <div class="b-mid">
@@ -670,29 +680,84 @@ st.markdown(f"""
     <div class="b-badge">● SYSTEM ACTIVE</div>
     <div class="b-time">{time.strftime('%Y-%m-%d  %H:%M:%S')}</div>
   </div>
-</div>
-""", unsafe_allow_html=True)
+</div>""", unsafe_allow_html=True)
+
+with b2:
+    st.markdown('<div style="height:.55rem"></div>', unsafe_allow_html=True)
+    if st.button("⚙  CONFIGURE", key="open_cfg", use_container_width=True):
+        st.session_state['show_cfg'] = True
+
+if 'show_cfg' not in st.session_state:
+    st.session_state.show_cfg = False
+
+
+@st.dialog("⚙  SYSTEM CONFIGURATION")
+def config_dialog():
+    def slbl(t):
+        st.markdown(f'<span style="font-family:var(--mono);font-size:.56rem;color:var(--dim);letter-spacing:2px">{t}</span>', unsafe_allow_html=True)
+
+    slbl("MODEL PATH")
+    mp  = st.text_input("mp",  value=st.session_state.cfg_model,     label_visibility="collapsed", key="dlg_mp")
+    slbl("DATABASE CSV")
+    cp  = st.text_input("cp",  value=st.session_state.cfg_csv,       label_visibility="collapsed", key="dlg_cp")
+    slbl("CLASS NAMES FILE")
+    cn  = st.text_input("cn",  value=st.session_state.cfg_cn,        label_visibility="collapsed", key="dlg_cn")
+    slbl("CONFIDENCE THRESHOLD")
+    thr = st.slider("thr", 0.50, 0.99, st.session_state.cfg_threshold, 0.01, label_visibility="collapsed", key="dlg_thr")
+    st.markdown(f'<div style="font-family:var(--mono);font-size:.58rem;color:var(--dim);text-align:center;margin-top:-.2rem">MIN {int(thr*100)}% FOR POSITIVE ID</div>', unsafe_allow_html=True)
+
+    st.markdown('<hr>', unsafe_allow_html=True)
+
+    # Live status
+    rm = mp if os.path.isabs(mp) else os.path.join(_script_dir, mp)
+    rc = cp if os.path.isabs(cp) else os.path.join(_script_dir, cp)
+    rn = cn if os.path.isabs(cn) else os.path.join(_script_dir, cn)
+    st.markdown(
+        f'<div class="{"as" if os.path.exists(rm) else "ad"}" style="font-size:.62rem;margin:.2rem 0">{"✓ Model file found" if os.path.exists(rm) else "✗ Model not found: " + os.path.basename(rm)}</div>'
+        f'<div class="{"as" if os.path.exists(rc) else "ad"}" style="font-size:.62rem;margin:.2rem 0">{"✓ CSV found" if os.path.exists(rc) else "✗ CSV not found: " + os.path.basename(rc)}</div>'
+        f'<div class="{"as" if os.path.exists(rn) else "ad"}" style="font-size:.62rem;margin:.2rem 0">{"✓ Class names found" if os.path.exists(rn) else "✗ Class names not found: " + os.path.basename(rn)}</div>',
+        unsafe_allow_html=True)
+
+    st.markdown('<div style="height:.4rem"></div>', unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        if st.button("💾  SAVE & APPLY", key="dlg_save", use_container_width=True):
+            st.session_state.cfg_model     = mp
+            st.session_state.cfg_csv       = cp
+            st.session_state.cfg_cn        = cn
+            st.session_state.cfg_threshold = thr
+            st.session_state.show_cfg      = False
+            load_model.clear(); load_csv.clear()
+            st.rerun()
+    with c2:
+        if st.button("🔄  RELOAD", key="dlg_reload", use_container_width=True):
+            load_model.clear(); load_csv.clear(); st.rerun()
+    with c3:
+        if st.button("🗑  CLEAR", key="dlg_clear", use_container_width=True):
+            for k in ['up_res','cam_res']:
+                if k in st.session_state: del st.session_state[k]
+            st.rerun()
+
+if st.session_state.show_cfg:
+    config_dialog()
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  CONFIG — hardcoded defaults, no sidebar, no panel
-#  Users change paths by editing these values directly in the file
+#  LOAD RESOURCES
 # ══════════════════════════════════════════════════════════════════════════
-_script_dir = os.path.dirname(os.path.abspath(__file__))
-
-model_path = "criminal_recognition_model.keras"
-csv_path   = "criminals_info.csv"
-cn_path    = "class_names.txt"
-threshold  = 0.80
+model_path = st.session_state.cfg_model
+csv_path   = st.session_state.cfg_csv
+cn_path    = st.session_state.cfg_cn
+threshold  = st.session_state.cfg_threshold
 
 model_loaded    = False
 model           = None
 info_df         = None
 class_names_map = {}
 
-resolved_model = os.path.join(_script_dir, model_path)
-resolved_csv   = os.path.join(_script_dir, csv_path)
-resolved_cn    = os.path.join(_script_dir, cn_path)
+resolved_model = model_path if os.path.isabs(model_path) else os.path.join(_script_dir, model_path)
+resolved_csv   = csv_path   if os.path.isabs(csv_path)   else os.path.join(_script_dir, csv_path)
+resolved_cn    = cn_path    if os.path.isabs(cn_path)    else os.path.join(_script_dir, cn_path)
 
 if os.path.exists(resolved_model):
     try:
