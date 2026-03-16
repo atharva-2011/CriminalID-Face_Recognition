@@ -744,7 +744,7 @@ with tab3:
         if search:
             mask     = info_df.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)
             filtered = info_df[
-                info_df.astype(str).apply(lambda col: col.str.contains(search, case=False, na=False).any(axis=1)
+                info_df.astype(str).apply(lambda col: col.str.contains(search, case=False, na=False)).any(axis=1)
             ]
 
         # ── KEY FIX: pass HTML to st.markdown with unsafe_allow_html=True ──
