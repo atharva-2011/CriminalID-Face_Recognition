@@ -11,8 +11,6 @@ import time
 import base64
 import json
 
-tf.config.optimizer.set_jit(True)
-
 st.set_page_config(
     page_title="CriminalID · Face Recognition",
     page_icon="🔍",
