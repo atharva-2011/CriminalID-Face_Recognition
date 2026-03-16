@@ -11,7 +11,7 @@ import time
 import base64
 import json
 
-
+tf.config.optimizer.set_jit(True)
 
 st.set_page_config(
     page_title="CriminalID · Face Recognition",
@@ -46,8 +46,7 @@ st.markdown("""
 /* ── Global ── */
 html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!important;font-family:var(--body)!important}
 .stApp{background:var(--bg)!important}
-#MainMenu{visibility:hidden}
-footer{visibility:hidden}
+#MainMenu,footer{visibility:hidden}
 .block-container{padding:0 1.5rem 3rem!important}
 
 /* scanline */
@@ -59,6 +58,14 @@ background:linear-gradient(180deg,#090d12,#060911)!important;
 border-right:1px solid var(--bdr)!important;
 min-width:260px!important;
 overflow:auto!important;
+}
+[data-testid="collapsedControl"]{
+    display:block !important;
+    visibility:visible !important;
+    opacity:1 !important;
+}
+[data-testid="stSidebar"]{
+    min-width:280px;
 }
 [data-testid="stSidebar"] *{color:var(--txt)!important}
 [data-testid="stSidebar"] input{background:var(--bg3)!important;border:1px solid var(--bdr)!important;color:var(--txt)!important;font-family:var(--mono)!important;font-size:.72rem!important;border-radius:4px!important;cursor:text!important}
@@ -296,8 +303,14 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()
 
 @st.cache_resource
 def warmup_model(model):
-    dummy = np.zeros((1,96,96,3), dtype=np.float32)
-    model(dummy, training=False)
+    dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
+    model.predict(dummy, verbose=0)
+
+@st.cache_resource
+def load_model_cached(path):
+    model = tf.keras.models.load_model(path, compile=False)
+    model.trainable = False
+    return model
 
 @st.cache_resource
 def load_model(path):
@@ -516,10 +529,10 @@ with st.sidebar:
 
     if os.path.exists(model_path):
         try:
-            model = load_model(model_path)
-            model.trainable = False
-            tf.config.optimizer.set_jit(True)
-            warmup_model(model)
+            with st.spinner("Loading AI model..."):
+                model = load_model_cached(model_path)
+                model.trainable = False
+                warmup_model(model)
             nc = model.output_shape[-1]
             model_loaded = True
             st.markdown(f'<div class="as">✓ &nbsp;MODEL LOADED &nbsp;·&nbsp; {nc} classes</div>', unsafe_allow_html=True)
