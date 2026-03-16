@@ -1,3 +1,6 @@
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -5,9 +8,11 @@ import cv2
 from PIL import Image
 import tensorflow as tf
 import time
-import os
 import base64
 import json
+
+tf.config.threading.set_intra_op_parallelism_threads(1)
+tf.config.threading.set_inter_op_parallelism_threads(1)
 
 st.set_page_config(
     page_title="CriminalID · Face Recognition",
@@ -42,14 +47,20 @@ st.markdown("""
 /* ── Global ── */
 html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!important;font-family:var(--body)!important}
 .stApp{background:var(--bg)!important}
-#MainMenu,footer,header{visibility:hidden}
-.block-container{padding:0 1.5rem 3rem!important;max-width:100%!important}
+#MainMenu{visibility:hidden}
+footer{visibility:hidden}
+.block-container{padding:0 1.5rem 3rem!important}
 
 /* scanline */
 .stApp::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:9999}
 
 /* ── Sidebar ── */
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#090d12,#060911)!important;border-right:1px solid var(--bdr)!important}
+[data-testid="stSidebar"]{
+background:linear-gradient(180deg,#090d12,#060911)!important;
+border-right:1px solid var(--bdr)!important;
+min-width:260px!important;
+overflow:auto!important;
+}
 [data-testid="stSidebar"] *{color:var(--txt)!important}
 [data-testid="stSidebar"] input{background:var(--bg3)!important;border:1px solid var(--bdr)!important;color:var(--txt)!important;font-family:var(--mono)!important;font-size:.72rem!important;border-radius:4px!important;cursor:text!important}
 [data-testid="stSidebar"] input:focus{border-color:var(--red)!important;outline:none!important}
@@ -285,22 +296,41 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()
 # ══════════════════════════════════════════════════════════════════════════
 
 @st.cache_resource
+def warmup_model(model):
+    dummy = np.zeros((1,96,96,3), dtype=np.float32)
+    model(dummy, training=False)
+
+@st.cache_resource
 def load_model(path):
-    return tf.keras.models.load_model(path)
+    model = return tf.keras.models.load_model(path,compile=False)
+    return model
 
 @st.cache_data
 def load_csv(path):
     return pd.read_csv(path)
 
+
+@st.cache_resource
+def load_cascades():
+    cascades = []
+    for xml in [
+        "haarcascade_frontalface_default.xml",
+        "haarcascade_frontalface_alt2.xml",
+        "haarcascade_profileface.xml"
+    ]:
+        cascades.append(cv2.CascadeClassifier(cv2.data.haarcascades + xml))
+    return cascades
+
+
 def detect_face(img_rgb):
     gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-    for xml in ['haarcascade_frontalface_default.xml',
-                'haarcascade_frontalface_alt2.xml',
-                'haarcascade_profileface.xml']:
-        cc    = cv2.CascadeClassifier(cv2.data.haarcascades + xml)
+    cascades = load_cascades()
+
+    for cc in cascades:
         faces = cc.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=3, minSize=(50,50))
         if len(faces) > 0:
             return faces
+
     return []
 
 def draw_box(img, faces, label, color):
@@ -320,7 +350,7 @@ def predict_face(model, crop, cnames):
     except Exception:
         h, w = 96, 96
 
-    img = np.array(Image.fromarray(crop).resize((w, h))).astype(np.float32)
+    img = cv2.resize(crop, (w, h)).astype(np.float32)
 
     # MobileNetV2 uses preprocess_input (scales to [-1,1]), NOT /255.0
     # This matches exactly how the training notebook preprocessed images
@@ -330,9 +360,9 @@ def predict_face(model, crop, cnames):
     except Exception:
         img = img / 255.0   # fallback for custom CNN models
 
-    preds = model.predict(np.expand_dims(img, 0), verbose=0)[0]
+    preds = model(np.expand_dims(img, 0), training=False).numpy()[0]
     idx = int(np.argmax(preds))
-    conf  = float(preds[idx])
+    conf = float(np.clip(preds[idx], 0, 1))
     name  = cnames.get(idx,"Unknown")
     return name, conf
 
@@ -489,6 +519,9 @@ with st.sidebar:
     if os.path.exists(model_path):
         try:
             model = load_model(model_path)
+            model.trainable = False
+            tf.config.optimizer.set_jit(True)
+            warmup_model(model)
             nc = model.output_shape[-1]
             model_loaded = True
             st.markdown(f'<div class="as">✓ &nbsp;MODEL LOADED &nbsp;·&nbsp; {nc} classes</div>', unsafe_allow_html=True)
@@ -571,6 +604,8 @@ with tab1:
         if uploaded:
             img_pil = Image.open(uploaded).convert("RGB")
             img_rgb = np.array(img_pil)
+            if img_rgb.shape[1] > 800:
+                img_rgb = cv2.resize(img_rgb, (800, int(img_rgb.shape[0] * 800 / img_rgb.shape[1])))
 
             if st.button("⚡  RUN IDENTIFICATION", key="run1"):
                 if not model_loaded:
@@ -586,7 +621,7 @@ with tab1:
                         st.markdown('<div class="ad">❌ &nbsp;NO FACE DETECTED<br><span style="font-size:.68rem;opacity:.7">Ensure subject\'s face is clearly visible and well-lit.</span></div>', unsafe_allow_html=True)
                         st.session_state['up_res'] = (img_rgb, None, 0.0)
                     else:
-                        x,y,w,h = sorted(faces, key=lambda f:f[2]*f[3], reverse=True)[0]
+                        x,y,w,h = max(faces, key=lambda f: f[2]*f[3])
                         pad = int(0.15*w)
 
                         x1 = max(0,x - pad)
@@ -632,7 +667,7 @@ with tab2:
 
         if cam:
             img_pil = Image.open(cam).convert("RGB")
-            img_rgb = np.array(img_pil)
+            img_rgb = cv2.resize(img_rgb, (640, int(img_rgb.shape[0] * 640 / img_rgb.shape[1])))
             if not model_loaded:
                 st.markdown('<div class="ad">⚠ &nbsp;MODEL NOT LOADED</div>', unsafe_allow_html=True)
             elif not class_names_map:
@@ -646,7 +681,7 @@ with tab2:
                     st.markdown('<div class="ad">❌ &nbsp;NO FACE DETECTED — try different angle or lighting</div>', unsafe_allow_html=True)
                     st.session_state['cam_res'] = None
                 else:
-                    x,y,w,h = sorted(faces, key=lambda f:f[2]*f[3], reverse=True)[0]
+                    x,y,w,h = max(faces, key=lambda f: f[2]*f[3])
                     pad = int(0.15*w)
 
                     x1 = max(0,x - pad)
