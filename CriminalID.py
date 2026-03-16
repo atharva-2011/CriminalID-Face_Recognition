@@ -19,7 +19,7 @@ st.set_page_config(
     page_title="CriminalID · Face Recognition",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -36,48 +36,22 @@ st.markdown("""
     --mono:'Share Tech Mono',monospace;
     --head:'Barlow Condensed',sans-serif;
     --body:'Rajdhani',sans-serif;
-    --panel-w:300px;
 }
 
 html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!important;font-family:var(--body)!important}
 .stApp{background:var(--bg)!important}
 #MainMenu,footer,header{visibility:hidden}
-.block-container{padding:0 0 3rem 0!important;max-width:100%!important;margin-top:0!important}
-[data-testid="stSidebar"]{display:none!important}
+.block-container{padding:0 1.5rem 3rem!important;max-width:100%!important;margin-top:0!important}
 
 /* scanline */
 .stApp::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:100}
 
-/* ══ FIXED CONFIG DRAWER ══════════════════════════════════════════════ */
-#cfgDrawer{
-    position:fixed;top:0;left:0;width:var(--panel-w);height:100vh;
-    background:linear-gradient(180deg,#090d12,#060911);
-    border-right:1px solid var(--bdr);
-    overflow-y:auto;overflow-x:hidden;
-    z-index:9000;
-    transition:transform .3s cubic-bezier(.16,1,.3,1);
-    padding:1rem .9rem 2rem;
-    scrollbar-width:thin;
-}
-#cfgDrawer.closed{transform:translateX(calc(-1 * var(--panel-w)))}
-
-/* Push main content when drawer open */
-#mainWrap{
-    transition:margin-left .3s cubic-bezier(.16,1,.3,1);
-}
-#mainWrap.shifted{margin-left:var(--panel-w)}
-
-.cfg-title{font-family:var(--mono);font-size:.58rem;color:var(--red);letter-spacing:3px;
-    border-left:3px solid var(--red);padding-left:.6rem;margin-bottom:1.1rem;display:block}
-.cfg-lbl{font-family:var(--mono);font-size:.56rem;color:var(--dim);letter-spacing:2px;
-    display:block;margin:.6rem 0 .2rem}
-.cfg-status{border-radius:6px;padding:.4rem .7rem;font-family:var(--mono);font-size:.62rem;
-    letter-spacing:.5px;margin:.3rem 0;display:block}
-.cfg-ok{background:rgba(46,196,182,.08);border:1px solid rgba(46,196,182,.28);color:var(--grn)}
-.cfg-err{background:rgba(230,57,70,.07);border:1px solid rgba(230,57,70,.35);color:var(--red)}
-.cfg-warn{background:rgba(244,162,97,.08);border:1px solid rgba(244,162,97,.3);color:var(--org)}
-
-/* ══ BANNER ══════════════════════════════════════════════════════════ */
+/* ── Sidebar ── */
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#090d12,#060911)!important;border-right:1px solid var(--bdr)!important}
+[data-testid="stSidebar"] *{color:var(--txt)!important}
+[data-testid="stSidebar"] input{background:var(--bg3)!important;border:1px solid var(--bdr)!important;color:var(--txt)!important;font-family:var(--mono)!important;font-size:.72rem!important;border-radius:4px!important}
+[data-testid="stSidebar"] input:focus{border-color:var(--red)!important;outline:none!important}
+[data-testid="stSidebar"] .stSlider *{cursor:pointer!important}
 .banner-wrap{
     display:flex;align-items:stretch;border-bottom:2px solid var(--red);
     background:linear-gradient(135deg,#080b0f 0%,#0c1a28 45%,#080b0f 100%);
@@ -87,16 +61,6 @@ html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!importa
     background:repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(230,57,70,.02) 60px,rgba(230,57,70,.02) 61px);
     animation:scanx 6s linear infinite;pointer-events:none}
 @keyframes scanx{to{background-position:120px 0}}
-
-#hamburgerBtn{
-    background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.4);
-    border-radius:5px;width:42px;height:42px;
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;flex-shrink:0;margin:auto .8rem;
-    font-size:1.15rem;color:var(--red);
-    transition:all .2s;z-index:10;
-}
-#hamburgerBtn:hover{background:rgba(230,57,70,.28);box-shadow:0 0 12px rgba(230,57,70,.3)}
 
 .b-logo{font-size:2rem;animation:logop 3s ease-in-out infinite;z-index:1}
 @keyframes logop{0%,100%{transform:scale(1)}50%{transform:scale(1.07);filter:drop-shadow(0 0 10px rgba(230,57,70,.7))}}
@@ -692,13 +656,11 @@ document.getElementById('tbody').addEventListener('click',function(e){{
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  BANNER — pure HTML div, no Streamlit columns for this row
+#  BANNER
 # ══════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
-<div id="mainWrap" class="{'shifted' if st.session_state.sidebar_open else ''}">
 <div class="banner-wrap">
   <div class="ctlx"></div><div class="cbrx"></div>
-  <div id="hamburgerBtn" onclick="toggleDrawer()">☰</div>
   <div class="b-mid">
     <div class="b-logo">🔍</div>
     <div>
@@ -711,46 +673,24 @@ st.markdown(f"""
     <div class="b-time">{time.strftime('%Y-%m-%d  %H:%M:%S')}</div>
   </div>
 </div>
-</div>
 """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  CONFIG DRAWER — fixed position HTML panel (not a Streamlit column)
+#  SIDEBAR — using native st.sidebar (clean, simple, works)
 # ══════════════════════════════════════════════════════════════════════════
-# Build status strings first (Python side), inject into fixed HTML drawer
-_script_dir    = os.path.dirname(os.path.abspath(__file__))
+_script_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Default values
 model_loaded    = False
 model           = None
 info_df         = None
 class_names_map = {}
 threshold       = 0.80
-model_path      = "criminal_recognition_model.keras"
-csv_path        = "criminals_info.csv"
-cn_path         = "class_names.txt"
 
-# ── Use st.sidebar for the interactive controls (hidden visually but
-#    functional — Streamlit widgets need a container) ──
-# Actually we use a collapsed expander trick: put controls in sidebar
-# which is hidden, but since sidebar is collapsed we use session_state
-# to store path values. Better: use st.columns with width 0 trick.
-# CORRECT APPROACH: Use a narrow hidden column for widget state,
-# render the visual drawer via HTML only.
+with st.sidebar:
+    st.markdown('<span style="font-family:var(--mono);font-size:.6rem;color:var(--red);letter-spacing:3px;border-left:3px solid var(--red);padding-left:.6rem">⚙ SYSTEM CONFIGURATION</span>', unsafe_allow_html=True)
+    st.markdown('<div style="height:.5rem"></div>', unsafe_allow_html=True)
 
-# Since Streamlit requires widgets to be in the render tree,
-# we put them in a visually hidden div using CSS:
-st.markdown("""
-<style>
-/* Hide the widget column visually but keep it in DOM for state */
-div[data-testid="stHorizontalBlock"]:has(#widget-anchor){display:none!important}
-</style>
-<div id="widget-anchor"></div>
-""", unsafe_allow_html=True)
-
-# Put all interactive widgets in the main flow but visually hidden
-with st.expander("⚙ CONFIG", expanded=st.session_state.sidebar_open):
     def slbl(t):
         st.markdown(f'<span style="font-family:var(--mono);font-size:.56rem;color:var(--dim);letter-spacing:2px">{t}</span>', unsafe_allow_html=True)
 
@@ -762,6 +702,8 @@ with st.expander("⚙ CONFIG", expanded=st.session_state.sidebar_open):
     cn_path    = st.text_input("cn", value="class_names.txt", label_visibility="collapsed")
     slbl("CONFIDENCE THRESHOLD")
     threshold  = st.slider("thr", 0.50, 0.99, 0.80, 0.01, label_visibility="collapsed")
+    st.markdown(f'<div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);text-align:center;margin-top:-.3rem">MIN {int(threshold*100)}% FOR POSITIVE ID</div>', unsafe_allow_html=True)
+    st.markdown('<hr>', unsafe_allow_html=True)
 
     resolved_model = model_path if os.path.isabs(model_path) else os.path.join(_script_dir, model_path)
     resolved_csv   = csv_path   if os.path.isabs(csv_path)   else os.path.join(_script_dir, csv_path)
@@ -772,111 +714,52 @@ with st.expander("⚙ CONFIG", expanded=st.session_state.sidebar_open):
             model = load_model(resolved_model)
             num_classes, in_h, in_w = get_model_info(model)
             model_loaded = True
-            model_status = f'<span class="cfg-status cfg-ok">✓ MODEL · {num_classes} cls · {in_h}×{in_w}</span>'
+            st.markdown(f'<div class="as">✓ MODEL · {num_classes} cls · {in_h}×{in_w}</div>', unsafe_allow_html=True)
         except Exception as e:
-            err_msg = str(e)[:120].replace('<','&lt;').replace('>','&gt;')
-            is_mm   = any(k in str(e) for k in ["input_layer","functional_","incompatible"])
-            hint    = ' · pip install tf-keras' if is_mm else ''
-            model_status = f'<span class="cfg-status cfg-err">✗ MODEL ERROR: {err_msg}{hint}</span>'
+            err = str(e)[:120].replace('<','&lt;').replace('>','&gt;')
+            is_mm = any(k in str(e) for k in ["input_layer","functional_","incompatible"])
+            hint = '<br><span style="color:#f4a261">pip install tf-keras</span>' if is_mm else ''
+            st.markdown(f'<div class="ad" style="font-size:.6rem">✗ MODEL ERROR<br>{err}{hint}</div>', unsafe_allow_html=True)
     else:
-        model_status = f'<span class="cfg-status cfg-err">✗ MODEL NOT FOUND: {os.path.basename(resolved_model)}</span>'
+        st.markdown(f'<div class="ad" style="font-size:.6rem">✗ NOT FOUND: {os.path.basename(resolved_model)}</div>', unsafe_allow_html=True)
+
+    st.markdown('<div style="height:.25rem"></div>', unsafe_allow_html=True)
 
     if os.path.exists(resolved_csv):
         try:
             info_df = load_csv(resolved_csv)
-            csv_status = f'<span class="cfg-status cfg-ok">✓ DATABASE · {len(info_df)} records</span>'
+            st.markdown(f'<div class="as">✓ DATABASE · {len(info_df)} records</div>', unsafe_allow_html=True)
         except Exception as e:
-            csv_status = f'<span class="cfg-status cfg-err">✗ CSV ERROR: {str(e)[:60]}</span>'
+            st.markdown(f'<div class="ad" style="font-size:.6rem">✗ CSV ERROR: {str(e)[:60]}</div>', unsafe_allow_html=True)
     else:
-        csv_status = '<span class="cfg-status cfg-err">✗ CSV NOT FOUND</span>'
+        st.markdown('<div class="ad" style="font-size:.6rem">✗ CSV NOT FOUND</div>', unsafe_allow_html=True)
+
+    st.markdown('<div style="height:.25rem"></div>', unsafe_allow_html=True)
 
     if os.path.exists(resolved_cn):
         with open(resolved_cn) as f:
             names = [l.strip() for l in f if l.strip()]
         class_names_map = {i: n for i, n in enumerate(names)}
-        cn_status = f'<span class="cfg-status cfg-ok">✓ CLASSES · {len(class_names_map)}</span>'
+        st.markdown(f'<div class="as">✓ CLASSES · {len(class_names_map)}</div>', unsafe_allow_html=True)
     elif model_loaded and info_df is not None:
         names = list(info_df['name'].str.strip())
         class_names_map = {i: n for i, n in enumerate(names)}
-        cn_status = '<span class="cfg-status cfg-warn">⚠ Using CSV order as classes</span>'
+        st.markdown('<div class="aw" style="font-size:.6rem">⚠ Using CSV order</div>', unsafe_allow_html=True)
     else:
-        cn_status = '<span class="cfg-status cfg-err">✗ CLASS NAMES NOT FOUND</span>'
+        st.markdown('<div class="ad" style="font-size:.6rem">✗ CLASS NAMES NOT FOUND</div>', unsafe_allow_html=True)
 
-    col_r, col_c = st.columns(2)
-    with col_r:
-        if st.button("🔄 RELOAD", key="reload_mdl"):
-            load_model.clear(); load_csv.clear(); st.rerun()
-    with col_c:
-        if st.button("🗑 CLEAR", key="clr"):
-            for k in ['up_res','cam_res']:
-                if k in st.session_state: del st.session_state[k]
-            st.rerun()
+    st.markdown('<hr>', unsafe_allow_html=True)
 
-# ── Inject the fixed visual drawer with status from Python ──
-st.markdown(f"""
-<div id="cfgDrawer" class="{'closed' if not st.session_state.sidebar_open else ''}">
-  <div style="margin-bottom:1.2rem">
-    <span class="cfg-title">⚙ SYSTEM CONFIGURATION</span>
-  </div>
-  <span class="cfg-lbl">MODEL PATH</span>
-  <div style="font-family:var(--mono);font-size:.65rem;color:var(--txt);
-       background:var(--bg3);border:1px solid var(--bdr);border-radius:4px;
-       padding:.35rem .6rem;margin-bottom:.4rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-    {model_path}
-  </div>
-  <span class="cfg-lbl">DATABASE CSV</span>
-  <div style="font-family:var(--mono);font-size:.65rem;color:var(--txt);
-       background:var(--bg3);border:1px solid var(--bdr);border-radius:4px;
-       padding:.35rem .6rem;margin-bottom:.4rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-    {csv_path}
-  </div>
-  <span class="cfg-lbl">CLASS NAMES FILE</span>
-  <div style="font-family:var(--mono);font-size:.65rem;color:var(--txt);
-       background:var(--bg3);border:1px solid var(--bdr);border-radius:4px;
-       padding:.35rem .6rem;margin-bottom:.4rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-    {cn_path}
-  </div>
-  <span class="cfg-lbl">CONFIDENCE THRESHOLD</span>
-  <div style="font-family:var(--mono);font-size:.8rem;color:var(--red);
-       text-align:center;padding:.3rem 0;font-weight:700">
-    {threshold:.2f} &nbsp;·&nbsp; MIN {int(threshold*100)}% FOR POSITIVE ID
-  </div>
-  <hr style="border-top:1px solid var(--bdr);margin:.7rem 0">
-  {model_status}
-  {csv_status}
-  {cn_status}
-  <hr style="border-top:1px solid var(--bdr);margin:.7rem 0">
-  <div style="font-family:var(--mono);font-size:.48rem;color:#172030;
-       text-align:center;line-height:2.2;margin-top:.5rem">
-    CRIMINALID v2.0 · FACE RECOGNITION SYSTEM<br>TensorFlow · OpenCV · Streamlit
-  </div>
-  <div style="margin-top:.6rem;font-family:var(--mono);font-size:.52rem;color:var(--dim);
-       text-align:center">
-    Use the ⚙ CONFIG expander below to edit paths &amp; threshold
-  </div>
-</div>
-<script>
-// Script runs AFTER cfgDrawer exists in DOM
-(function(){{
-  var _open = {'true' if st.session_state.sidebar_open else 'false'};
-  var _drawer, _wrap;
-  function _get(){{
-    _drawer = document.getElementById('cfgDrawer');
-    _wrap   = document.getElementById('mainWrap');
-  }}
-  _get();
-  window.toggleDrawer = function(){{
-    _get();
-    _open = !_open;
-    if(_drawer) _drawer.classList.toggle('closed', !_open);
-    if(_wrap)   _wrap.classList.toggle('shifted', _open);
-  }};
-  // Hamburger button onclick may fire before this script runs — attach listener too
-  var hbtn = document.getElementById('hamburgerBtn');
-  if(hbtn) hbtn.onclick = window.toggleDrawer;
-}})();
-</script>
-""", unsafe_allow_html=True)
+    if st.button("🔄  RELOAD MODEL", key="reload_mdl"):
+        load_model.clear(); load_csv.clear(); st.rerun()
+
+    if st.button("🗑  CLEAR RESULTS", key="clr"):
+        for k in ['up_res','cam_res']:
+            if k in st.session_state: del st.session_state[k]
+        st.rerun()
+
+    st.markdown('<hr>', unsafe_allow_html=True)
+    st.markdown('<div style="font-family:var(--mono);font-size:.48rem;color:#172030;text-align:center;line-height:2.2">CRIMINALID v2.0<br>TensorFlow · OpenCV · Streamlit</div>', unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════
