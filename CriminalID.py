@@ -302,8 +302,7 @@ def warmup_model(model):
 
 @st.cache_resource
 def load_model(path):
-    model = tf.keras.models.load_model(path,compile=False)
-    return model
+    return tf.keras.models.load_model(path,compile=False)
 
 @st.cache_data
 def load_csv(path):
