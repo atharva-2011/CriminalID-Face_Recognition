@@ -302,17 +302,13 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()
 @st.cache_resource
 def warmup_model(model):
     dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
-    model.predict(dummy, verbose=0)
+    model.predict(dummy,training=False,verbose=0)
 
 @st.cache_resource
 def load_model_cached(path):
     model = tf.keras.models.load_model(path, compile=False)
     model.trainable = False
     return model
-
-@st.cache_resource
-def load_model(path):
-    return tf.keras.models.load_model(path,compile=False)
 
 @st.cache_data
 def load_csv(path):
@@ -336,7 +332,7 @@ def detect_face(img_rgb):
     cascades = load_cascades()
 
     for cc in cascades:
-        faces = cc.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=3, minSize=(50,50))
+        faces = cc.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=9, minSize=(60,60))
         if len(faces) > 0:
             return faces
 
@@ -529,7 +525,6 @@ with st.sidebar:
         try:
             with st.spinner("Loading AI model..."):
                 model = load_model_cached(model_path)
-                model.trainable = False
                 warmup_model(model)
             nc = model.output_shape[-1]
             model_loaded = True
@@ -676,6 +671,7 @@ with tab2:
 
         if cam:
             img_pil = Image.open(cam).convert("RGB")
+            img_rgb = np.array(img_pil)
             img_rgb = cv2.resize(img_rgb, (640, int(img_rgb.shape[0] * 640 / img_rgb.shape[1])))
             if not model_loaded:
                 st.markdown('<div class="ad">⚠ &nbsp;MODEL NOT LOADED</div>', unsafe_allow_html=True)
@@ -750,7 +746,9 @@ with tab3:
         filtered = info_df
         if search:
             mask     = info_df.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)
-            filtered = info_df[mask]
+            filtered = info_df[
+                info_df.astype(str).apply(lambda col: col.str.contains(search, case=False, na=False).any(axis=1)
+            ]
 
         # ── KEY FIX: pass HTML to st.markdown with unsafe_allow_html=True ──
         st.markdown(build_table(filtered), unsafe_allow_html=True)
