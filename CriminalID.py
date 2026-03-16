@@ -664,9 +664,7 @@ if 'cfg_csv'       not in st.session_state: st.session_state.cfg_csv       = "cr
 if 'cfg_cn'        not in st.session_state: st.session_state.cfg_cn        = "class_names.txt"
 if 'cfg_threshold' not in st.session_state: st.session_state.cfg_threshold = 0.80
 
-b1, b2 = st.columns([0.82, 0.18])
-with b1:
-    st.markdown(f"""
+st.markdown(f"""
 <div class="banner-wrap">
   <div class="ctlx"></div><div class="cbrx"></div>
   <div class="b-mid">
@@ -682,8 +680,9 @@ with b1:
   </div>
 </div>""", unsafe_allow_html=True)
 
-with b2:
-    st.markdown('<div style="height:.55rem"></div>', unsafe_allow_html=True)
+# Configure button row — right-aligned, below banner
+cfg_spacer, cfg_btn_col = st.columns([0.78, 0.22])
+with cfg_btn_col:
     if st.button("⚙  CONFIGURE", key="open_cfg", use_container_width=True):
         st.session_state['show_cfg'] = True
 
