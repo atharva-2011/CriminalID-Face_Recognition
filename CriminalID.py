@@ -303,7 +303,7 @@ def warmup_model(model):
 
 @st.cache_resource
 def load_model_cached(path):
-    model = tf.keras.models.load_model(path, compile=False,safe_mode=False)
+    model = keras.models.load_model(path, compile=False)
     model.trainable = False
     return model
 
@@ -522,6 +522,10 @@ with st.sidebar:
         try:
             with st.spinner("Loading AI model..."):
                 model = load_model_cached(model_path)
+                # build model once
+                dummy = np.zeros((1,224,224,3), dtype=np.float32)
+                model(dummy)
+                print(model.input_shape)
                 warmup_model(model)
             nc = model.output_shape[-1]
             model_loaded = True
