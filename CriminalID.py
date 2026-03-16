@@ -54,16 +54,13 @@ html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!importa
 [data-testid="stSidebar"]{
 background:linear-gradient(180deg,#090d12,#060911)!important;
 border-right:1px solid var(--bdr)!important;
-min-width:260px!important;
+width:260px!important;
 overflow:auto!important;
 }
 [data-testid="collapsedControl"]{
     display:block !important;
     visibility:visible !important;
     opacity:1 !important;
-}
-[data-testid="stSidebar"]{
-    min-width:280px;
 }
 [data-testid="stSidebar"] *{color:var(--txt)!important}
 [data-testid="stSidebar"] input{background:var(--bg3)!important;border:1px solid var(--bdr)!important;color:var(--txt)!important;font-family:var(--mono)!important;font-size:.72rem!important;border-radius:4px!important;cursor:text!important}
@@ -302,11 +299,11 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()
 @st.cache_resource
 def warmup_model(model):
     dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
-    model.predict(dummy,training=False,verbose=0)
+    model.predict(dummy,training=False)
 
 @st.cache_resource
 def load_model_cached(path):
-    model = tf.keras.models.load_model(path, compile=False)
+    model = tf.keras.models.load_model(path, compile=False,safe_mode=False)
     model.trainable = False
     return model
 
