@@ -9,16 +9,18 @@ import os
 import base64
 import json
 
+# ── Sidebar state must be set BEFORE set_page_config ──
+if "sidebar_open" not in st.session_state:
+    st.session_state.sidebar_open = True
+
+_sidebar_state = "expanded" if st.session_state.sidebar_open else "collapsed"
+
 st.set_page_config(
     page_title="CriminalID · Face Recognition",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state=_sidebar_state
 )
-
-# ── Sidebar toggle via session state ──
-if "sidebar_open" not in st.session_state:
-    st.session_state.sidebar_open = True
 
 # ══════════════════════════════════════════════════════════════════════════
 #  CSS
@@ -726,22 +728,17 @@ with st.sidebar:
 #  BANNER  (hamburger is a real st.button so it works on Streamlit Cloud)
 # ══════════════════════════════════════════════════════════════════════════
 
-# Hamburger button CSS — override the default red full-width button style just for this one
+# Hamburger button CSS — target specifically by key
 st.markdown("""
 <style>
-div[data-testid="stHorizontalBlock"] div.stButton:first-child > button{
+button[data-testid="baseButton-secondary"][kind="secondary"]{
     background:rgba(230,57,70,.12)!important;
     border:1px solid rgba(230,57,70,.4)!important;
     border-radius:5px!important;
-    width:42px!important;min-width:42px!important;max-width:42px!important;
+    width:42px!important;min-width:42px!important;
     height:42px!important;padding:0!important;
-    font-size:1.1rem!important;letter-spacing:0!important;
+    font-size:1.2rem!important;letter-spacing:0!important;
     box-shadow:none!important;color:var(--red)!important;
-    display:flex!important;align-items:center!important;justify-content:center!important;
-}
-div[data-testid="stHorizontalBlock"] div.stButton:first-child > button:hover{
-    background:rgba(230,57,70,.28)!important;
-    box-shadow:0 0 12px rgba(230,57,70,.3)!important;
     transform:none!important;
 }
 </style>""", unsafe_allow_html=True)
@@ -772,13 +769,6 @@ with banner_right:
 </div>""", unsafe_allow_html=True)
 
 st.markdown('<div style="border-bottom:2px solid var(--red);margin-bottom:.5rem"></div>', unsafe_allow_html=True)
-
-# Show or hide sidebar based on session state
-if not st.session_state.sidebar_open:
-    st.markdown("""
-<style>
-[data-testid="stSidebar"]{display:none!important}
-</style>""", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════
