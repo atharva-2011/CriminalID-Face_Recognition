@@ -43,7 +43,25 @@ st.markdown("""
 html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!important;font-family:var(--body)!important}
 .stApp{background:var(--bg)!important}
 #MainMenu,footer{visibility:hidden}
-header[data-testid="stHeader"]{visibility:hidden;height:0;min-height:0}
+/* Keep header transparent but functional */
+header[data-testid="stHeader"]{background:transparent!important;border:none!important}
+header[data-testid="stHeader"]::before{display:none!important}
+header[data-testid="stHeader"] > div:first-child{opacity:0!important;pointer-events:none!important}
+/* Native sidebar collapse/expand button — always visible, styled to match app */
+button[data-testid="collapsedControl"]{
+    opacity:1!important;pointer-events:auto!important;z-index:99999!important;
+    background:linear-gradient(135deg,#b91c1c,#e63946)!important;
+    border:none!important;border-radius:5px!important;
+    color:#fff!important;width:36px!important;height:36px!important;
+    box-shadow:0 4px 16px rgba(230,57,70,.4)!important;
+    transition:all .2s!important;
+}
+button[data-testid="collapsedControl"]:hover{
+    background:linear-gradient(135deg,#991b1b,#b91c1c)!important;
+    box-shadow:0 6px 20px rgba(230,57,70,.6)!important;
+    transform:scale(1.08)!important;
+}
+button[data-testid="collapsedControl"] svg{stroke:#fff!important;fill:#fff!important}
 .block-container{padding:0 1.5rem 3rem!important;max-width:100%!important;margin-top:0!important}
 
 /* scanline */
@@ -214,10 +232,23 @@ header[data-testid="stHeader"]{visibility:hidden;height:0;min-height:0}
 ::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:rgba(230,57,70,.4)}
 
-/* ── Custom Sidebar Toggle ── */
-.sb-toggle{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.35);border-radius:5px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;z-index:1}
-.sb-toggle:hover{background:rgba(230,57,70,.28);border-color:var(--red);box-shadow:0 0 12px rgba(230,57,70,.25)}
-.sb-toggle svg{width:16px;height:16px;fill:none;stroke:var(--red);stroke-width:2;stroke-linecap:round}
+/* ── Sidebar native close button (×) — make it prominent ── */
+[data-testid="stSidebarCollapseButton"] button,
+button[data-testid="stSidebarCollapseButton"]{
+    background:rgba(230,57,70,.15)!important;
+    border:1px solid rgba(230,57,70,.4)!important;
+    border-radius:5px!important;
+    color:var(--red)!important;
+    opacity:1!important;
+    transition:all .2s!important;
+}
+[data-testid="stSidebarCollapseButton"] button:hover,
+button[data-testid="stSidebarCollapseButton"]:hover{
+    background:rgba(230,57,70,.3)!important;
+    border-color:var(--red)!important;
+}
+[data-testid="stSidebarCollapseButton"] svg,
+button[data-testid="stSidebarCollapseButton"] svg{stroke:var(--red)!important}
 
 hr{border:none!important;border-top:1px solid var(--bdr)!important;margin:.7rem 0!important}
 .stSpinner>div{border-top-color:var(--red)!important}
@@ -595,11 +626,13 @@ def build_table(df):
 #  SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════
 with st.sidebar:
+    # ── Sidebar close button at top ──
     st.markdown("""
-<div style="font-family:var(--mono);font-size:.6rem;color:var(--red);
-     letter-spacing:3px;margin-bottom:1.2rem;
-     border-left:3px solid var(--red);padding-left:.6rem">
-  SYSTEM CONFIGURATION
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+  <div style="font-family:var(--mono);font-size:.6rem;color:var(--red);
+       letter-spacing:3px;border-left:3px solid var(--red);padding-left:.6rem">
+    SYSTEM CONFIGURATION
+  </div>
 </div>""", unsafe_allow_html=True)
 
     def slbl(t):
@@ -728,9 +761,6 @@ with st.sidebar:
 st.markdown(f"""
 <div class="banner">
   <div class="ctlx"></div><div class="cbrx"></div>
-  <div class="sb-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
-    <svg viewBox="0 0 18 14"><line x1="1" y1="2" x2="17" y2="2"/><line x1="1" y1="7" x2="17" y2="7"/><line x1="1" y1="12" x2="17" y2="12"/></svg>
-  </div>
   <div class="b-logo">🔍</div>
   <div>
     <div class="b-title">CriminalID</div>
@@ -740,25 +770,7 @@ st.markdown(f"""
     <div class="b-badge">● SYSTEM ACTIVE</div>
     <div class="b-time">{time.strftime('%Y-%m-%d  %H:%M:%S')}</div>
   </div>
-</div>
-
-<script>
-function toggleSidebar() {{
-    // Try Streamlit's built-in sidebar button first
-    var btn = window.parent.document.querySelector('[data-testid="collapsedControl"]') ||
-              window.parent.document.querySelector('button[kind="header"]') ||
-              window.parent.document.querySelector('[data-testid="stSidebarNavCollapseButton"]') ||
-              window.parent.document.querySelector('button[aria-label="Close sidebar"]') ||
-              window.parent.document.querySelector('button[aria-label="Open sidebar"]');
-    if (btn) {{ btn.click(); return; }}
-    // Fallback: toggle sidebar visibility directly
-    var sb = window.parent.document.querySelector('[data-testid="stSidebar"]');
-    if (sb) {{
-        var cur = sb.style.display;
-        sb.style.display = (cur === 'none') ? '' : 'none';
-    }}
-}}
-</script>""", unsafe_allow_html=True)
+</div>""", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════
