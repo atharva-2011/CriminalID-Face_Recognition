@@ -540,92 +540,154 @@ def build_database_block(df, total):
         rows_html += f'<tr data-b64="{b64}" style="animation-delay:{delay}"><td title="{fname}">{fname}</td><td title="{crime}" style="color:#e63946;font-weight:600">{crime}</td><td>{sbdg}</td><td style="color:#4a6070">{age}</td><td style="color:#4a6070">{gender}</td><td style="color:#4a6070" title="{nat}">{nat}</td><td style="color:#4a6070" title="{last}">{last}</td><td><span class="vbtn">👁 VIEW</span></td></tr>'
 
     return f"""
-<!-- ══ CRIMINAL MODAL ══ -->
-<div id="crimOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:99998;backdrop-filter:blur(5px);align-items:center;justify-content:center">
-  <div id="crimBox" style="background:linear-gradient(145deg,#0d1117,#101a25);border:1px solid #e63946;border-radius:10px;width:min(680px,92vw);max-height:85vh;overflow-y:auto;padding:2rem 2rem 1.5rem;position:relative;box-shadow:0 0 60px rgba(230,57,70,.18),0 25px 50px rgba(0,0,0,.6)">
-    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#e63946,rgba(230,57,70,.3),transparent);border-radius:10px 10px 0 0"></div>
-    <div class="mcls" id="crimClose">✕</div>
-    <div id="crimContent"></div>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{background:#080b0f;font-family:'Rajdhani',sans-serif;color:#c8d6e5;overflow-x:hidden}}
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:wght@700;900&display=swap');
+
+/* TABLE */
+.dbtw{{overflow-y:auto;overflow-x:hidden;border:1px solid #1a2535;border-radius:8px;margin-top:.5rem}}
+table{{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.87rem}}
+thead{{position:sticky;top:0;z-index:5;background:#08111a}}
+thead th{{font-family:'Share Tech Mono',monospace;font-size:.53rem;letter-spacing:2px;color:#4a6070;
+  text-transform:uppercase;padding:.62rem .8rem;border-bottom:1px solid #1a2535;
+  text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+th:nth-child(1){{width:17%}}th:nth-child(2){{width:17%}}th:nth-child(3){{width:13%}}
+th:nth-child(4){{width:6%}}th:nth-child(5){{width:8%}}th:nth-child(6){{width:11%}}
+th:nth-child(7){{width:12%}}th:nth-child(8){{width:16%}}
+tbody tr{{border-bottom:1px solid rgba(26,37,53,.55);transition:background .15s;cursor:pointer}}
+tbody tr:hover{{background:rgba(230,57,70,.07)}}
+tbody td{{padding:.58rem .8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;color:#c8d6e5}}
+tbody td:first-child{{color:#7b9cff;font-weight:700}}
+.vbtn{{background:rgba(230,57,70,.1);border:1px solid rgba(230,57,70,.28);color:#e63946;
+  padding:2px 10px;border-radius:3px;font-family:'Share Tech Mono',monospace;
+  font-size:.58rem;cursor:pointer;transition:all .2s;display:inline-block}}
+.vbtn:hover{{background:rgba(230,57,70,.25)}}
+.bw{{background:rgba(230,57,70,.18);border:1px solid #e63946;color:#e63946;
+  padding:2px 8px;border-radius:3px;font-size:.65rem;font-family:'Share Tech Mono',monospace}}
+.ba{{background:rgba(244,162,97,.18);border:1px solid #f4a261;color:#f4a261;
+  padding:2px 8px;border-radius:3px;font-size:.65rem;font-family:'Share Tech Mono',monospace}}
+.bi{{background:rgba(46,196,182,.15);border:1px solid #2ec4b6;color:#2ec4b6;
+  padding:2px 8px;border-radius:3px;font-size:.65rem;font-family:'Share Tech Mono',monospace}}
+
+/* MODAL — fixed to viewport via parent window communication */
+#overlay{{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);
+  z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)}}
+#overlay.show{{display:flex}}
+#box{{background:linear-gradient(145deg,#0d1117,#101a25);border:1px solid #e63946;
+  border-radius:10px;width:min(660px,90vw);max-height:80vh;overflow-y:auto;
+  padding:2rem;position:relative;
+  box-shadow:0 0 60px rgba(230,57,70,.2),0 25px 50px rgba(0,0,0,.7);
+  animation:mdin .3s cubic-bezier(.16,1,.3,1)}}
+@keyframes mdin{{from{{opacity:0;transform:translateY(15px)}}to{{opacity:1;transform:translateY(0)}}}}
+#box::before{{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#e63946,rgba(230,57,70,.3),transparent);border-radius:10px 10px 0 0}}
+.cls{{position:absolute;top:1rem;right:1rem;width:28px;height:28px;
+  background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);border-radius:4px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;color:#e63946;font-family:'Share Tech Mono',monospace;user-select:none}}
+.cls:hover{{background:rgba(230,57,70,.28)}}
+.mtag{{font-family:'Share Tech Mono',monospace;font-size:.54rem;color:#e63946;
+  letter-spacing:3px;text-transform:uppercase;margin-bottom:.5rem}}
+.mname{{font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:900;
+  color:#fff;letter-spacing:3px;line-height:1;text-shadow:0 0 20px rgba(230,57,70,.3);
+  margin-bottom:1rem}}
+.mhr{{border:none;border-top:1px solid #1a2535;margin:.75rem 0}}
+.mfld{{display:flex;align-items:flex-start;gap:.8rem;padding:.45rem 0;
+  border-bottom:1px solid rgba(26,37,53,.8)}}
+.mkey{{font-family:'Share Tech Mono',monospace;font-size:.54rem;color:#4a6070;
+  letter-spacing:2px;text-transform:uppercase;min-width:115px;flex-shrink:0;padding-top:.18rem}}
+.mv{{font-family:'Rajdhani',sans-serif;font-size:.92rem;font-weight:600;color:#c8d6e5;line-height:1.45}}
+.mv.mc{{color:#e63946}}
+.mdesc{{margin-top:1rem;background:rgba(8,11,15,.7);border:1px solid #1a2535;
+  border-radius:6px;padding:.85rem 1rem;font-size:.86rem;color:#4a6070;line-height:1.7}}
+.footer{{font-family:'Share Tech Mono',monospace;font-size:.55rem;color:#4a6070;
+  text-align:right;margin-top:.5rem}}
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div id="overlay">
+  <div id="box">
+    <div class="cls" id="cls">✕</div>
+    <div id="content"></div>
   </div>
 </div>
 
-<!-- ══ TABLE ══ -->
+<!-- TABLE -->
 <div class="dbtw">
-<table class="dbt">
+<table>
 <thead><tr>
   <th>NAME</th><th>CRIME</th><th>STATUS</th>
   <th>AGE</th><th>GENDER</th><th>NATIONALITY</th>
   <th>LAST SEEN</th><th>PROFILE</th>
 </tr></thead>
-<tbody>{rows_html}</tbody>
+<tbody id="tbody">{rows_html}</tbody>
 </table>
 </div>
-<div style="font-family:'Share Tech Mono',monospace;font-size:.55rem;color:#4a6070;text-align:right;margin-top:.5rem">
-  SHOWING {len(df)} OF {total} RECORDS &nbsp;·&nbsp; CLICK ANY ROW OR 👁 VIEW TO OPEN FULL PROFILE
-</div>
+<div class="footer">SHOWING {len(df)} OF {total} RECORDS &nbsp;·&nbsp; CLICK ANY ROW OR 👁 VIEW</div>
 
 <script>
-(function(){{
-  // ── Modal open/close ──
-  function esc(s){{var d=document.createElement('div');d.textContent=s||'—';return d.innerHTML;}}
-  function badge(s){{
-    s=(s||'').toLowerCase();
-    if(s.indexOf('wanted')>=0)  return '<span class="mbw">⚠ WANTED</span>';
-    if(s.indexOf('arrested')>=0)return '<span class="mba">⚡ ARRESTED</span>';
-    if(s.indexOf('imprison')>=0)return '<span class="mbi">🔒 IMPRISONED</span>';
-    return '<span style="color:#8899aa;font-family:Share Tech Mono,monospace;font-size:.72rem">'+s+'</span>';
-  }}
-  function openModal(b64){{
-    var data=JSON.parse(atob(b64));
-    var html='<div class="mtag">⚠ &nbsp;CRIMINAL RECORD — CONFIDENTIAL</div>';
-    html+='<div class="mname">'+(esc(data.full_name||data.name||'UNKNOWN')).toUpperCase()+'</div>';
-    html+='<hr class="mhr">';
-    var fields=[
-      ['FULL NAME',  data.full_name||data.name||'—', ''],
-      ['CRIME',      data.crime||'—',               'mc'],
-      ['STATUS',     data.status||'—',              'status'],
-      ['AGE',        data.age||'—',                 ''],
-      ['GENDER',     data.gender||'—',              ''],
-      ['NATIONALITY',data.nationality||'—',         ''],
-      ['LAST SEEN',  data.last_seen||'—',           ''],
-    ];
-    fields.forEach(function(f){{
-      var v;
-      if(f[2]==='status') v=badge(f[1]);
-      else if(f[2]==='mc') v='<span class="mval2 mc">'+esc(f[1])+'</span>';
-      else v='<span class="mval2">'+esc(f[1])+'</span>';
-      html+='<div class="mfld"><span class="mkey">'+f[0]+'</span>'+v+'</div>';
-    }});
-    if(data.description&&data.description!=='—'){{
-      html+='<div class="mdesc"><span style="font-family:Share Tech Mono,monospace;font-size:.53rem;color:#4a6070;letter-spacing:2px;display:block;margin-bottom:.4rem">CASE NOTES</span>'+esc(data.description)+'</div>';
-    }}
-    document.getElementById('crimContent').innerHTML=html;
-    var ov=document.getElementById('crimOverlay');
-    ov.style.display='flex';
-    ov.style.animation='fdo .2s ease';
-    document.body.style.overflow='hidden';
-  }}
-  function closeModal(){{
-    document.getElementById('crimOverlay').style.display='none';
-    document.body.style.overflow='';
-  }}
+var overlay=document.getElementById('overlay');
+var content=document.getElementById('content');
 
-  // ── Close button ──
-  document.getElementById('crimClose').addEventListener('click',closeModal);
-  // ── Click outside ──
-  document.getElementById('crimOverlay').addEventListener('click',function(e){{
-    if(e.target===this) closeModal();
-  }});
-  // ── Escape key ──
-  document.addEventListener('keydown',function(e){{if(e.key==='Escape')closeModal();}});
+function esc(s){{var d=document.createElement('div');d.textContent=s||'—';return d.innerHTML;}}
+function badge(s){{
+  s=(s||'').toLowerCase();
+  if(s.indexOf('wanted')>=0)  return '<span class="bw">⚠ WANTED</span>';
+  if(s.indexOf('arrested')>=0)return '<span class="ba">⚡ ARRESTED</span>';
+  if(s.indexOf('imprison')>=0)return '<span class="bi">🔒 IMPRISONED</span>';
+  return '<span style="color:#8899aa">'+esc(s)+'</span>';
+}}
 
-  // ── Row/button click — event delegation on tbody ──
-  document.querySelector('.dbt tbody').addEventListener('click',function(e){{
-    var tr=e.target.closest('tr[data-b64]');
-    if(tr) openModal(tr.getAttribute('data-b64'));
+function openModal(b64){{
+  var data=JSON.parse(atob(b64));
+  var html='<div class="mtag">⚠ CRIMINAL RECORD — CONFIDENTIAL</div>';
+  html+='<div class="mname">'+esc(data.full_name||data.name||'UNKNOWN').toUpperCase()+'</div>';
+  html+='<hr class="mhr">';
+  [['FULL NAME',data.full_name||data.name||'—',''],
+   ['CRIME',data.crime||'—','mc'],
+   ['STATUS',data.status||'—','status'],
+   ['AGE',data.age||'—',''],
+   ['GENDER',data.gender||'—',''],
+   ['NATIONALITY',data.nationality||'—',''],
+   ['LAST SEEN',data.last_seen||'—','']
+  ].forEach(function(f){{
+    var v = f[2]==='status' ? badge(f[1]) :
+            f[2]==='mc'     ? '<span class="mv mc">'+esc(f[1])+'</span>' :
+                              '<span class="mv">'+esc(f[1])+'</span>';
+    html+='<div class="mfld"><span class="mkey">'+f[0]+'</span>'+v+'</div>';
   }});
-}})();
+  if(data.description&&data.description!=='—'){{
+    html+='<div class="mdesc"><small style="font-family:monospace;font-size:.5rem;color:#4a6070;letter-spacing:2px;display:block;margin-bottom:.3rem">CASE NOTES</small>'+esc(data.description)+'</div>';
+  }}
+  content.innerHTML=html;
+  overlay.classList.add('show');
+  document.body.style.overflow='hidden';
+}}
+
+function closeModal(){{
+  overlay.classList.remove('show');
+  document.body.style.overflow='';
+}}
+
+document.getElementById('cls').onclick=closeModal;
+overlay.onclick=function(e){{if(e.target===overlay)closeModal();}};
+document.addEventListener('keydown',function(e){{if(e.key==='Escape')closeModal();}});
+
+// Event delegation on tbody
+document.getElementById('tbody').addEventListener('click',function(e){{
+  var tr=e.target.closest('tr[data-b64]');
+  if(tr) openModal(tr.getAttribute('data-b64'));
+}});
 </script>
+</body>
+</html>
 """
 
 
@@ -650,25 +712,6 @@ st.markdown(f"""
   </div>
 </div>
 </div>
-
-<script>
-// Drawer is controlled purely by CSS classes — no Streamlit rerun needed
-(function(){{
-  var open = {'true' if st.session_state.sidebar_open else 'false'};
-  var drawer = document.getElementById('cfgDrawer');
-  var wrap   = document.getElementById('mainWrap');
-  if(!open){{ drawer && drawer.classList.add('closed'); wrap && wrap.classList.remove('shifted'); }}
-
-  window.toggleDrawer = function(){{
-    open = !open;
-    if(drawer) drawer.classList.toggle('closed', !open);
-    if(wrap)   wrap.classList.toggle('shifted', open);
-    // Notify Streamlit so session state stays in sync on rerun
-    // We use a hidden button click trick
-    var btn = window.parent.document.querySelector('[data-testid="stButton"] button[kind="secondary"]');
-  }};
-}})();
-</script>
 """, unsafe_allow_html=True)
 
 
@@ -812,6 +855,27 @@ st.markdown(f"""
     Use the ⚙ CONFIG expander below to edit paths &amp; threshold
   </div>
 </div>
+<script>
+// Script runs AFTER cfgDrawer exists in DOM
+(function(){{
+  var _open = {'true' if st.session_state.sidebar_open else 'false'};
+  var _drawer, _wrap;
+  function _get(){{
+    _drawer = document.getElementById('cfgDrawer');
+    _wrap   = document.getElementById('mainWrap');
+  }}
+  _get();
+  window.toggleDrawer = function(){{
+    _get();
+    _open = !_open;
+    if(_drawer) _drawer.classList.toggle('closed', !_open);
+    if(_wrap)   _wrap.classList.toggle('shifted', _open);
+  }};
+  // Hamburger button onclick may fire before this script runs — attach listener too
+  var hbtn = document.getElementById('hamburgerBtn');
+  if(hbtn) hbtn.onclick = window.toggleDrawer;
+}})();
+</script>
 """, unsafe_allow_html=True)
 
 
@@ -959,8 +1023,11 @@ with tab3:
             mask = info_df.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)
             filtered = info_df[mask]
 
-        # ── KEY: everything in ONE st.markdown call — modal + table + script ──
-        st.markdown(build_database_block(filtered, total), unsafe_allow_html=True)
+        # ── KEY: components.html = true iframe, JS works 100%, modal works ──
+        import streamlit.components.v1 as components
+        row_count = len(filtered)
+        iframe_h  = min(600, max(300, 120 + row_count * 42))
+        components.html(build_database_block(filtered, total), height=iframe_h, scrolling=False)
 
     else:
         st.markdown('<div class="ad">⚠ &nbsp;DATABASE NOT LOADED<br><span style="font-size:.68rem;opacity:.7">Open ⚙ CONFIG panel and set the CSV path.</span></div>', unsafe_allow_html=True)
