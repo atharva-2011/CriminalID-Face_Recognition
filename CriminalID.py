@@ -9,17 +9,17 @@ import os
 import base64
 import json
 
-# ── Sidebar state must be set BEFORE set_page_config ──
+# ══════════════════════════════════════════════════════════════════════════
+#  SESSION STATE — must happen before set_page_config
+# ══════════════════════════════════════════════════════════════════════════
 if "sidebar_open" not in st.session_state:
     st.session_state.sidebar_open = True
-
-_sidebar_state = "expanded" if st.session_state.sidebar_open else "collapsed"
 
 st.set_page_config(
     page_title="CriminalID · Face Recognition",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state=_sidebar_state
+    initial_sidebar_state="collapsed"   # We manage our own panel; hide native sidebar
 )
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -49,38 +49,42 @@ st.markdown("""
 html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!important;font-family:var(--body)!important}
 .stApp{background:var(--bg)!important}
 #MainMenu,footer,header{visibility:hidden}
-.block-container{padding:0 1.5rem 3rem!important;max-width:100%!important;margin-top:0!important}
+.block-container{padding:0 0 3rem 0!important;max-width:100%!important;margin-top:0!important}
 
 /* scanline */
 .stApp::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:9999}
 
-/* ── Sidebar ── */
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#090d12,#060911)!important;border-right:1px solid var(--bdr)!important}
-[data-testid="stSidebar"] *{color:var(--txt)!important}
-[data-testid="stSidebar"] input{background:var(--bg3)!important;border:1px solid var(--bdr)!important;color:var(--txt)!important;font-family:var(--mono)!important;font-size:.72rem!important;border-radius:4px!important;cursor:text!important}
-[data-testid="stSidebar"] input:focus{border-color:var(--red)!important;outline:none!important}
-[data-testid="stSidebar"] .stSlider{cursor:pointer!important}
-[data-testid="stSidebar"] .stSlider *{cursor:pointer!important}
+/* ── Hide native Streamlit sidebar completely ── */
+[data-testid="stSidebar"]{display:none!important}
 
-/* Fix Streamlit overriding button cursor */
-.stButton > button{cursor:pointer!important}
-.stButton > button *{cursor:pointer!important}
+/* ── Custom config panel ── */
+.cfg-panel{background:linear-gradient(180deg,#090d12,#060911);border-right:1px solid var(--bdr);padding:1rem .85rem;min-height:100vh}
+.cfg-title{font-family:var(--mono);font-size:.58rem;color:var(--red);letter-spacing:3px;border-left:3px solid var(--red);padding-left:.6rem;margin-bottom:1.1rem;display:block}
 
-/* Fix file uploader cursor */
-[data-testid="stFileUploader"] label{cursor:pointer!important}
-[data-testid="stFileUploader"] section{cursor:pointer!important}
-
-/* Fix tab cursor */
-.stTabs [data-baseweb="tab"]{cursor:pointer!important}
+/* ── Hamburger button — override global red button style ── */
+div[data-testid="column"]:first-child .stButton > button {
+    background:rgba(230,57,70,.12)!important;
+    border:1px solid rgba(230,57,70,.4)!important;
+    width:40px!important;min-width:40px!important;
+    height:40px!important;padding:0!important;
+    font-size:1.2rem!important;letter-spacing:0!important;
+    box-shadow:none!important;color:var(--red)!important;
+    transform:none!important;line-height:1!important;
+}
+div[data-testid="column"]:first-child .stButton > button:hover{
+    background:rgba(230,57,70,.28)!important;
+    box-shadow:0 0 10px rgba(230,57,70,.3)!important;
+    transform:none!important;
+}
 
 /* ── Banner ── */
-.banner{background:linear-gradient(135deg,#080b0f 0%,#0c1a28 45%,#080b0f 100%);border-bottom:2px solid var(--red);padding:1.1rem 2rem;display:flex;align-items:center;gap:1.2rem;position:relative;overflow:hidden}
+.banner{background:linear-gradient(135deg,#080b0f 0%,#0c1a28 45%,#080b0f 100%);border-bottom:2px solid var(--red);padding:.85rem 1.5rem;display:flex;align-items:center;gap:1.2rem;position:relative;overflow:hidden}
 .banner::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(230,57,70,.022) 60px,rgba(230,57,70,.022) 61px);animation:scanx 6s linear infinite}
 @keyframes scanx{to{background-position:120px 0}}
-.b-logo{font-size:2.1rem;z-index:1;animation:logop 3s ease-in-out infinite}
+.b-logo{font-size:2rem;z-index:1;animation:logop 3s ease-in-out infinite}
 @keyframes logop{0%,100%{transform:scale(1)}50%{transform:scale(1.07);filter:drop-shadow(0 0 10px rgba(230,57,70,.7))}}
-.b-title{font-family:var(--head)!important;font-size:2.5rem!important;font-weight:900!important;letter-spacing:6px!important;color:#fff!important;text-transform:uppercase;line-height:1!important;z-index:1;text-shadow:0 0 30px rgba(230,57,70,.35)}
-.b-sub{font-family:var(--mono)!important;font-size:.6rem!important;color:var(--red)!important;letter-spacing:3px;text-transform:uppercase;z-index:1;animation:flkr 5s step-end infinite}
+.b-title{font-family:var(--head)!important;font-size:2.3rem!important;font-weight:900!important;letter-spacing:6px!important;color:#fff!important;text-transform:uppercase;line-height:1!important;z-index:1;text-shadow:0 0 30px rgba(230,57,70,.35)}
+.b-sub{font-family:var(--mono)!important;font-size:.58rem!important;color:var(--red)!important;letter-spacing:3px;text-transform:uppercase;z-index:1;animation:flkr 5s step-end infinite}
 @keyframes flkr{0%,20%,22%,100%{opacity:1}21%{opacity:.2}}
 .b-right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;z-index:1}
 .b-badge{background:rgba(46,196,182,.1);border:1px solid var(--grn);border-radius:3px;padding:.2rem .7rem;font-family:var(--mono);font-size:.58rem;color:var(--grn);letter-spacing:2px;animation:blnk 1.8s step-end infinite}
@@ -155,7 +159,7 @@ html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!importa
 
 /* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"]{background:var(--bg2)!important;border-bottom:1px solid var(--bdr)!important;gap:0!important}
-.stTabs [data-baseweb="tab"]{background:transparent!important;color:var(--dim)!important;font-family:var(--head)!important;font-size:.88rem!important;letter-spacing:3px!important;font-weight:600!important;border-radius:0!important;padding:.75rem 1.4rem!important;border-bottom:2px solid transparent!important;transition:all .2s!important}
+.stTabs [data-baseweb="tab"]{background:transparent!important;color:var(--dim)!important;font-family:var(--head)!important;font-size:.88rem!important;letter-spacing:3px!important;font-weight:600!important;border-radius:0!important;padding:.75rem 1.4rem!important;border-bottom:2px solid transparent!important;transition:all .2s!important;cursor:pointer!important}
 .stTabs [data-baseweb="tab"]:hover{color:var(--txt)!important}
 .stTabs [aria-selected="true"]{background:transparent!important;color:var(--red)!important;border-bottom:2px solid var(--red)!important}
 
@@ -225,7 +229,10 @@ hr{border:none!important;border-top:1px solid var(--bdr)!important;margin:.7rem 
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════
-#  MODAL HTML + JS  (injected once, lives in DOM throughout session)
+#  MODAL HTML + JS
+#  NOTE: Streamlit strips inline onclick from st.markdown HTML.
+#  Fix: use event delegation on document — listen for clicks on .vbtn or tr
+#  and read data-b64 attribute instead of inline onclick="openModal(...)"
 # ══════════════════════════════════════════════════════════════════════════
 st.markdown("""
 <div id="crimOverlay" onclick="if(event.target===this)closeModal()">
@@ -234,12 +241,10 @@ st.markdown("""
     <div id="crimContent"></div>
   </div>
 </div>
-
 <script>
 function openModal(b64) {
     var raw  = atob(b64);
     var data = JSON.parse(raw);
-
     function sb(s){
         s = (s||'').toLowerCase();
         if(s.indexOf('wanted')   >=0) return '<span class="bw">⚠ WANTED</span>';
@@ -247,9 +252,7 @@ function openModal(b64) {
         if(s.indexOf('imprison') >=0) return '<span class="bi">🔒 IMPRISONED</span>';
         return '<span style="color:#8899aa;font-family:var(--mono);font-size:.72rem">'+s+'</span>';
     }
-
     function esc(s){ var d=document.createElement('div');d.textContent=s;return d.innerHTML; }
-
     var nameDisp = esc(data.full_name || data.name || '—');
     var fields = [
         ['FULL NAME',   data.full_name   || data.name || '—', ''],
@@ -282,6 +285,22 @@ function closeModal(){
     document.body.style.overflow='';
 }
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+// ── Event delegation: catch clicks on any tr[data-b64] or .vbtn inside it ──
+// Streamlit strips inline onclick attrs, so we attach a single listener on
+// document and walk up the DOM to find the nearest tr with data-b64.
+document.addEventListener('click', function(e){
+    var el = e.target;
+    // Walk up max 4 levels to find a tr with data-b64
+    for(var i=0;i<4;i++){
+        if(!el) break;
+        if(el.tagName==='TR' && el.getAttribute('data-b64')){
+            openModal(el.getAttribute('data-b64'));
+            return;
+        }
+        el = el.parentElement;
+    }
+});
 </script>
 """, unsafe_allow_html=True)
 
@@ -292,84 +311,33 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()
 
 @st.cache_resource(show_spinner=False)
 def load_model(path):
-    """
-    Robust multi-strategy model loader.
-
-    The 'Input 0 with name input_layer_N of layer functional_...' error means
-    the .keras file was saved with Keras 2 (TF ≤ 2.15) but is being loaded by
-    Keras 3 (TF ≥ 2.16), or vice versa.  We try every known strategy in order
-    so the app works regardless of which TF version is installed.
-
-    Strategy order:
-      1. tf_keras (standalone tf-keras package, always Keras 2 — most compatible)
-      2. tf.keras compile=False  (standard, suppresses optimizer mismatch)
-      3. tf.keras compile=True   (standard, full load)
-      4. Legacy H5 / SavedModel via tf.saved_model.load
-      5. Force Keras 2 via environment flag (TF 2.16+ with keras 2 compat layer)
-    """
     abs_path = os.path.abspath(path)
     if not os.path.exists(abs_path):
         raise FileNotFoundError(f"Model file not found: {abs_path}")
-
     os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
-
     last_exc = None
-
-    # ── Strategy 1: tf_keras (pip install tf-keras) ──
-    # This is the Keras 2 compatibility package for TF 2.16+.
-    # If it's installed, it's the most reliable loader for models
-    # trained with the old tf.keras API.
     try:
         import tf_keras
-        mdl = tf_keras.models.load_model(abs_path, compile=False)
-        return mdl
+        return tf_keras.models.load_model(abs_path, compile=False)
     except ImportError:
-        pass  # tf_keras not installed — try next strategy
+        pass
     except Exception as e:
         last_exc = e
-
-    # ── Strategy 2: Standard tf.keras, compile=False ──
     try:
-        mdl = tf.keras.models.load_model(abs_path, compile=False)
-        return mdl
+        return tf.keras.models.load_model(abs_path, compile=False)
     except Exception as e:
         last_exc = e
-
-    # ── Strategy 3: Standard tf.keras, compile=True ──
     try:
-        mdl = tf.keras.models.load_model(abs_path)
-        return mdl
+        return tf.keras.models.load_model(abs_path)
     except Exception as e:
         last_exc = e
-
-    # ── Strategy 4: Force Keras 2 compat via env var (TF 2.16+) ──
-    # TF 2.16+ ships with Keras 3 by default but has a compat flag.
     try:
-        import os as _os
-        _os.environ["TF_USE_LEGACY_KERAS"] = "1"
-        import importlib
-        # Need to reload tf.keras after setting the flag
-        if hasattr(tf, "keras"):
-            importlib.reload(tf.keras)
-        mdl = tf.keras.models.load_model(abs_path, compile=False)
-        return mdl
+        return tf.saved_model.load(abs_path)
     except Exception as e:
         last_exc = e
-
-    # ── Strategy 5: tf.saved_model.load (works for SavedModel format) ──
-    try:
-        mdl = tf.saved_model.load(abs_path)
-        return mdl
-    except Exception as e:
-        last_exc = e
-
-    # All strategies failed — raise the most recent error with a helpful message
     raise RuntimeError(
-        f"Could not load model after trying all strategies.\n"
-        f"Last error: {last_exc}\n\n"
-        f"LIKELY FIX: Your model was saved with Keras 2 (TF ≤ 2.15) but you "
-        f"are running TF 2.16+.  Run:  pip install tf-keras  in your environment "
-        f"and restart the app."
+        f"Could not load model. Last error: {last_exc}\n"
+        f"FIX: Run  pip install tf-keras  then click RELOAD MODEL."
     )
 
 
@@ -382,48 +350,40 @@ def load_csv(path):
 
 
 def get_model_info(mdl):
-    """Safely extract (num_classes, input_h, input_w) from a loaded model."""
-    # --- output classes ---
     try:
         out_shape = mdl.output_shape
-        # Could be a list for multi-output models; take the last element
         if isinstance(out_shape, list):
             out_shape = out_shape[-1]
         num_classes = out_shape[-1]
     except Exception:
         num_classes = "?"
-
-    # --- input spatial size ---
     try:
         in_shape = mdl.input_shape
         if isinstance(in_shape, list):
             in_shape = in_shape[0]
-        # shape is (batch, H, W, C) or (batch, C, H, W)
         h = in_shape[1] if in_shape[1] not in (None, 3) else None
         w = in_shape[2] if in_shape[2] not in (None, 3) else None
-        # If dynamic (None), default to MobileNetV2 standard
         h = h or 224
         w = w or 224
     except Exception:
         h, w = 224, 224
-
     return num_classes, int(h), int(w)
+
 
 def detect_face(img_rgb):
     gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-    # Apply CLAHE to improve detection in low-light / low-contrast images
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
     gray_eq = clahe.apply(gray)
     for xml in ['haarcascade_frontalface_default.xml',
                 'haarcascade_frontalface_alt2.xml',
                 'haarcascade_profileface.xml']:
         cc = cv2.CascadeClassifier(cv2.data.haarcascades + xml)
-        # Try enhanced image first, fall back to original
         for img_try in [gray_eq, gray]:
             faces = cc.detectMultiScale(img_try, scaleFactor=1.05, minNeighbors=3, minSize=(40,40))
             if len(faces) > 0:
                 return faces
     return []
+
 
 def draw_box(img, faces, label, color):
     out = img.copy()
@@ -434,6 +394,7 @@ def draw_box(img, faces, label, color):
         cv2.putText(out,label,(x+4,y-5),cv2.FONT_HERSHEY_SIMPLEX,0.58,(255,255,255),2)
     return out
 
+
 try:
     from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as _mobilenet_preprocess
     _HAS_MOBILENET_PREPROCESS = True
@@ -442,35 +403,22 @@ except ImportError:
 
 
 def predict_face(model, crop, cnames):
-    """
-    Predict identity from a cropped face.
-    Handles both standard Keras models (.predict) and raw SavedModel
-    objects returned by tf.saved_model.load (callable with __call__).
-    Input size is read from the model where possible; defaults to 224×224
-    (MobileNetV2 standard).
-    """
     _, h, w = get_model_info(model)
-
     img = np.array(Image.fromarray(crop).resize((w, h))).astype(np.float32)
-
     if _HAS_MOBILENET_PREPROCESS:
         img = _mobilenet_preprocess(img)
     else:
         img = img / 255.0
-
     batch = np.expand_dims(img, 0)
-
-    # Keras model (has .predict)
     if hasattr(model, "predict"):
         preds = model.predict(batch, verbose=0)[0]
     else:
-        # Raw SavedModel callable — call directly as a tf function
         preds = model(tf.constant(batch, dtype=tf.float32)).numpy()[0]
-
     idx  = int(np.argmax(preds))
     conf = float(preds[idx])
     name = cnames.get(idx, "Unknown")
     return name, conf
+
 
 def sbadge(status):
     s = str(status).strip().lower()
@@ -478,6 +426,7 @@ def sbadge(status):
     if 'arrested' in s: return '<span class="ba">⚡ ARRESTED</span>'
     if 'imprison' in s: return '<span class="bi">🔒 IMPRISONED</span>'
     return f'<span style="color:#8899aa;font-family:var(--mono);font-size:.7rem">{status}</span>'
+
 
 def confbar(conf, thr):
     pct   = int(conf*100)
@@ -492,10 +441,10 @@ def confbar(conf, thr):
     THRESHOLD: {int(thr*100)}% &nbsp;·&nbsp; {label}</div>
 </div>"""
 
+
 def render_profile(name, conf, thr, df):
     disp  = name.replace('_',' ')
     match = df[df['name'].str.strip()==name] if df is not None else pd.DataFrame()
-
     if conf >= thr:
         st.markdown('<div class="rf">', unsafe_allow_html=True)
         st.markdown(f"""
@@ -512,14 +461,13 @@ def render_profile(name, conf, thr, df):
                 if col == 'name': continue
                 val = str(row[col])
                 key = col.replace('_',' ').upper()
-                if   col.lower() == 'status':      v = sbadge(val)
-                elif col.lower() == 'crime':        v = f'<span class="pv cr">{val}</span>'
-                elif col.lower() == 'description':  v = f'<span class="pv ds">{val}</span>'
-                else:                               v = f'<span class="pv">{val}</span>'
+                if   col.lower() == 'status':     v = sbadge(val)
+                elif col.lower() == 'crime':       v = f'<span class="pv cr">{val}</span>'
+                elif col.lower() == 'description': v = f'<span class="pv ds">{val}</span>'
+                else:                              v = f'<span class="pv">{val}</span>'
                 html += f'<div class="prow"><span class="pk">{key}</span>{v}</div>'
             st.markdown(html, unsafe_allow_html=True)
-            # Cross-link hint to database tab
-            st.markdown('<div class="ai" style="margin-top:.9rem;font-size:.62rem">💡 &nbsp;Open <strong>DATABASE</strong> tab to view full records &amp; search all criminals</div>', unsafe_allow_html=True)
+            st.markdown('<div class="ai" style="margin-top:.9rem;font-size:.62rem">💡 &nbsp;Open <strong>DATABASE</strong> tab to view full records</div>', unsafe_allow_html=True)
         else:
             st.markdown('<div class="ai" style="margin-top:.8rem">No additional profile data in database.</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -540,32 +488,30 @@ RECOMMENDATIONS:<br>
 › &nbsp;Ensure face is clearly visible and front-facing<br>
 › &nbsp;Improve lighting conditions<br>
 › &nbsp;Try a higher resolution photo<br>
-› &nbsp;Adjust confidence threshold in sidebar
+› &nbsp;Adjust confidence threshold in settings panel
 </div>""", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 
 def row_to_b64(row_dict):
-    """Encode row data as base64 JSON for safe onclick attribute."""
     clean = {k: str(v) for k, v in row_dict.items()}
     return base64.b64encode(json.dumps(clean).encode()).decode()
 
 
 def build_table(df):
-    """Returns the full HTML table — must be passed to st.markdown with unsafe_allow_html=True."""
     rows_html = ""
     for i, (_, row) in enumerate(df.iterrows()):
-        b64      = row_to_b64(row.to_dict())
-        delay    = f"{i*0.03:.2f}s"
-        fname    = str(row.get('full_name', row.get('name',''))).replace('_',' ')
-        crime    = str(row.get('crime','—'))
-        stat     = sbadge(str(row.get('status','—')))
-        age      = str(row.get('age','—'))
-        gender   = str(row.get('gender','—'))
-        nat      = str(row.get('nationality','—'))
-        last     = str(row.get('last_seen','—'))
+        b64   = row_to_b64(row.to_dict())
+        delay = f"{i*0.03:.2f}s"
+        fname = str(row.get('full_name', row.get('name',''))).replace('_',' ')
+        crime = str(row.get('crime','—'))
+        stat  = sbadge(str(row.get('status','—')))
+        age   = str(row.get('age','—'))
+        gender= str(row.get('gender','—'))
+        nat   = str(row.get('nationality','—'))
+        last  = str(row.get('last_seen','—'))
         rows_html += f"""
-<tr style="animation-delay:{delay}" onclick="openModal('{b64}')">
+<tr data-b64="{b64}" style="animation-delay:{delay}">
   <td title="{fname}">{fname}</td>
   <td title="{crime}" style="color:var(--red);font-weight:600">{crime}</td>
   <td>{stat}</td>
@@ -575,184 +521,33 @@ def build_table(df):
   <td style="color:var(--dim)" title="{last}">{last}</td>
   <td><span class="vbtn">👁 VIEW</span></td>
 </tr>"""
-
     return f"""
 <div class="dbtw">
 <table class="dbt">
-<thead>
-<tr>
+<thead><tr>
   <th>NAME</th><th>CRIME</th><th>STATUS</th>
   <th>AGE</th><th>GENDER</th><th>NATIONALITY</th>
   <th>LAST SEEN</th><th>PROFILE</th>
-</tr>
-</thead>
+</tr></thead>
 <tbody>{rows_html}</tbody>
 </table>
 </div>"""
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  SIDEBAR
+#  BANNER ROW
 # ══════════════════════════════════════════════════════════════════════════
-with st.sidebar:
-    # ── Sidebar close button at top ──
-    st.markdown("""
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-  <div style="font-family:var(--mono);font-size:.6rem;color:var(--red);
-       letter-spacing:3px;border-left:3px solid var(--red);padding-left:.6rem">
-    SYSTEM CONFIGURATION
-  </div>
-</div>""", unsafe_allow_html=True)
+hcol_btn, hcol_mid, hcol_right = st.columns([0.045, 0.70, 0.255])
 
-    def slbl(t):
-        st.markdown(f'<span style="font-family:var(--mono);font-size:.58rem;color:var(--dim);letter-spacing:2px">{t}</span>',
-                    unsafe_allow_html=True)
-
-    slbl("MODEL PATH")
-    model_path = st.text_input("mp", value="criminal_recognition_model.keras", label_visibility="collapsed")
-    slbl("DATABASE CSV")
-    csv_path   = st.text_input("cp", value="criminals_info.csv",label_visibility="collapsed")
-    slbl("CLASS NAMES FILE")
-    cn_path    = st.text_input("cn", value="class_names.txt",label_visibility="collapsed")
-    slbl("CONFIDENCE THRESHOLD")
-    threshold  = st.slider("thr", 0.50, 0.99, 0.80, 0.01,label_visibility="collapsed")
-    st.markdown(f'<div style="font-family:var(--mono);font-size:.58rem;color:var(--dim);text-align:center;margin-top:-.3rem">MIN {int(threshold*100)}% FOR POSITIVE ID</div>',
-                unsafe_allow_html=True)
-    st.markdown('<hr>', unsafe_allow_html=True)
-
-    # ── Load resources ──
-    model_loaded    = False
-    model           = None
-    info_df         = None
-    class_names_map = {}
-
-    # Resolve path relative to the script file so it works on Streamlit Cloud
-    # where the working directory may differ from the script directory
-    _script_dir = os.path.dirname(os.path.abspath(__file__))
-    resolved_model = model_path if os.path.isabs(model_path) else os.path.join(_script_dir, model_path)
-    resolved_csv   = csv_path   if os.path.isabs(csv_path)   else os.path.join(_script_dir, csv_path)
-    resolved_cn    = cn_path    if os.path.isabs(cn_path)    else os.path.join(_script_dir, cn_path)
-
-    if os.path.exists(resolved_model):
-        try:
-            model = load_model(resolved_model)
-            num_classes, in_h, in_w = get_model_info(model)
-            model_loaded = True
-            st.markdown(
-                f'<div class="as">✓ &nbsp;MODEL LOADED &nbsp;·&nbsp; {num_classes} classes &nbsp;·&nbsp; {in_h}×{in_w}px</div>',
-                unsafe_allow_html=True)
-        except Exception as e:
-            err_msg = str(e)
-            short_err = err_msg[:160].replace('<', '&lt;').replace('>', '&gt;')
-
-            # Detect the Keras 2 vs Keras 3 version mismatch specifically
-            is_version_mismatch = any(kw in err_msg for kw in [
-                "input_layer", "functional_", "TF_USE_LEGACY_KERAS",
-                "Unable to load weights", "incompatible"
-            ])
-            hint = ""
-            if is_version_mismatch:
-                hint = (
-                    '<span style="font-size:.60rem;color:#f4a261;display:block;margin-top:.5rem;line-height:1.6">'
-                    '⚠ Keras version mismatch detected.<br>'
-                    'Your model was saved with a different TF/Keras version.<br>'
-                    '<strong>Fix:</strong> Run this in your terminal, then restart:<br>'
-                    '<code style="background:#0a1018;padding:2px 6px;border-radius:3px;font-size:.58rem">'
-                    'pip install tf-keras</code>'
-                    '</span>'
-                )
-            st.markdown(
-                f'<div class="ad">✗ MODEL LOAD ERROR<br>'
-                f'<span style="font-size:.60rem;opacity:.85;line-height:1.6;display:block;margin-top:.3rem">{short_err}</span>'
-                f'{hint}'
-                f'</div>',
-                unsafe_allow_html=True)
-    else:
-        st.markdown(
-            f'<div class="ad">✗ MODEL FILE NOT FOUND<br>'
-            f'<span style="font-size:.60rem;opacity:.7;display:block;margin-top:.2rem">{resolved_model}</span>'
-            f'<span style="font-size:.56rem;opacity:.5;display:block;margin-top:.2rem">Place the .keras/.h5 file in the same folder as CriminalID.py</span>'
-            f'</div>',
-            unsafe_allow_html=True)
-
-    st.markdown('<div style="height:.3rem"></div>', unsafe_allow_html=True)
-
-    if os.path.exists(resolved_csv):
-        try:
-            info_df = load_csv(resolved_csv)
-            st.markdown(f'<div class="as">✓ &nbsp;DATABASE &nbsp;·&nbsp; {len(info_df)} records</div>', unsafe_allow_html=True)
-        except Exception as e:
-            st.markdown(f'<div class="ad">✗ CSV ERROR<br><span style="font-size:.62rem">{str(e)[:80]}</span></div>', unsafe_allow_html=True)
-    else:
-        st.markdown(
-            f'<div class="ad">✗ CSV NOT FOUND<br><span style="font-size:.62rem;opacity:.7">{resolved_csv}</span></div>',
-            unsafe_allow_html=True)
-
-    st.markdown('<div style="height:.3rem"></div>', unsafe_allow_html=True)
-
-    if os.path.exists(resolved_cn):
-        with open(resolved_cn) as f:
-            names = [l.strip() for l in f if l.strip()]
-        class_names_map = {i: n for i, n in enumerate(names)}
-        st.markdown(f'<div class="as">✓ &nbsp;CLASS NAMES &nbsp;·&nbsp; {len(class_names_map)}</div>', unsafe_allow_html=True)
-    elif model_loaded and info_df is not None:
-        names = list(info_df['name'].str.strip())
-        class_names_map = {i: n for i, n in enumerate(names)}
-        st.markdown('<div class="aw">⚠ Using CSV row order as class names</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="ad">✗ CLASS NAMES NOT FOUND</div>', unsafe_allow_html=True)
-
-    st.markdown('<hr>', unsafe_allow_html=True)
-
-    # ── Reload Model (clears cache so path change takes effect) ──
-    if st.button("🔄  RELOAD MODEL", key="reload_mdl"):
-        load_model.clear()
-        load_csv.clear()
-        st.rerun()
-
-    # ── Clear session results ──
-    if st.button("🗑  CLEAR RESULTS", key="clr"):
-        for k in ['up_res', 'cam_res']:
-            if k in st.session_state:
-                del st.session_state[k]
-        st.rerun()
-
-    st.markdown('<hr>', unsafe_allow_html=True)
-    st.markdown("""
-<div style="font-family:var(--mono);font-size:.5rem;color:#172030;text-align:center;line-height:2.2">
-  CRIMINALID v2.0<br>FACE RECOGNITION SYSTEM<br>TensorFlow · OpenCV · Streamlit
-</div>""", unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════════════
-#  BANNER  (hamburger is a real st.button so it works on Streamlit Cloud)
-# ══════════════════════════════════════════════════════════════════════════
-
-# Hamburger button CSS — target specifically by key
-st.markdown("""
-<style>
-button[data-testid="baseButton-secondary"][kind="secondary"]{
-    background:rgba(230,57,70,.12)!important;
-    border:1px solid rgba(230,57,70,.4)!important;
-    border-radius:5px!important;
-    width:42px!important;min-width:42px!important;
-    height:42px!important;padding:0!important;
-    font-size:1.2rem!important;letter-spacing:0!important;
-    box-shadow:none!important;color:var(--red)!important;
-    transform:none!important;
-}
-</style>""", unsafe_allow_html=True)
-
-banner_left, banner_mid, banner_right = st.columns([0.04, 0.70, 0.26])
-
-with banner_left:
+with hcol_btn:
+    st.markdown('<div style="padding-top:.3rem"></div>', unsafe_allow_html=True)
     if st.button("☰", key="hamburger"):
         st.session_state.sidebar_open = not st.session_state.sidebar_open
         st.rerun()
 
-with banner_mid:
+with hcol_mid:
     st.markdown(f"""
-<div class="banner" style="margin:0;border-bottom:none;padding:.6rem 1rem">
+<div class="banner" style="padding:.75rem 1rem">
   <div class="ctlx"></div><div class="cbrx"></div>
   <div class="b-logo">🔍</div>
   <div>
@@ -761,196 +556,293 @@ with banner_mid:
   </div>
 </div>""", unsafe_allow_html=True)
 
-with banner_right:
+with hcol_right:
     st.markdown(f"""
-<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;padding:.8rem 1rem">
+<div style="background:linear-gradient(135deg,#080b0f 0%,#0c1a28 100%);border-bottom:2px solid var(--red);
+     display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+     gap:.35rem;padding:.75rem 1.2rem;height:100%">
   <div class="b-badge">● SYSTEM ACTIVE</div>
   <div class="b-time">{time.strftime('%Y-%m-%d  %H:%M:%S')}</div>
 </div>""", unsafe_allow_html=True)
 
-st.markdown('<div style="border-bottom:2px solid var(--red);margin-bottom:.5rem"></div>', unsafe_allow_html=True)
-
 
 # ══════════════════════════════════════════════════════════════════════════
-#  TABS
+#  MAIN CONTENT ROW
+#  Config panel is a plain st.column — toggling reruns the page instantly.
+#  No CSS hacks, no JS, no st.sidebar. Pure Python column show/hide.
 # ══════════════════════════════════════════════════════════════════════════
-tab1, tab2, tab3 = st.tabs([
-    "  📁  UPLOAD IMAGE  ",
-    "  📷  WEBCAM  ",
-    "  📊  DATABASE  "
-])
+if st.session_state.sidebar_open:
+    col_cfg, col_main = st.columns([0.18, 0.82])
+else:
+    col_main = st.columns([1])[0]
+    col_cfg  = None
+
+# ── Default values when panel is hidden ──
+model_loaded    = False
+model           = None
+info_df         = None
+class_names_map = {}
+threshold       = 0.80
+
+# ── CONFIG PANEL ──
+if st.session_state.sidebar_open and col_cfg is not None:
+    with col_cfg:
+        st.markdown('<div class="cfg-panel">', unsafe_allow_html=True)
+        st.markdown('<span class="cfg-title">⚙ SYSTEM CONFIGURATION</span>', unsafe_allow_html=True)
+
+        def slbl(t):
+            st.markdown(
+                f'<span style="font-family:var(--mono);font-size:.56rem;color:var(--dim);letter-spacing:2px">{t}</span>',
+                unsafe_allow_html=True)
+
+        slbl("MODEL PATH")
+        model_path = st.text_input("mp", value="criminal_recognition_model.keras", label_visibility="collapsed")
+        slbl("DATABASE CSV")
+        csv_path   = st.text_input("cp", value="criminals_info.csv", label_visibility="collapsed")
+        slbl("CLASS NAMES FILE")
+        cn_path    = st.text_input("cn", value="class_names.txt", label_visibility="collapsed")
+        slbl("CONFIDENCE THRESHOLD")
+        threshold  = st.slider("thr", 0.50, 0.99, 0.80, 0.01, label_visibility="collapsed")
+        st.markdown(f'<div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);text-align:center;margin-top:-.3rem">MIN {int(threshold*100)}% FOR POSITIVE ID</div>',
+                    unsafe_allow_html=True)
+        st.markdown('<hr>', unsafe_allow_html=True)
+
+        _script_dir    = os.path.dirname(os.path.abspath(__file__))
+        resolved_model = model_path if os.path.isabs(model_path) else os.path.join(_script_dir, model_path)
+        resolved_csv   = csv_path   if os.path.isabs(csv_path)   else os.path.join(_script_dir, csv_path)
+        resolved_cn    = cn_path    if os.path.isabs(cn_path)    else os.path.join(_script_dir, cn_path)
+
+        # Model
+        if os.path.exists(resolved_model):
+            try:
+                model = load_model(resolved_model)
+                num_classes, in_h, in_w = get_model_info(model)
+                model_loaded = True
+                st.markdown(f'<div class="as">✓ MODEL · {num_classes} cls · {in_h}×{in_w}</div>', unsafe_allow_html=True)
+            except Exception as e:
+                err_msg   = str(e)
+                short_err = err_msg[:140].replace('<','&lt;').replace('>','&gt;')
+                is_mm     = any(k in err_msg for k in ["input_layer","functional_","incompatible"])
+                hint      = ('<span style="font-size:.56rem;color:#f4a261;display:block;margin-top:.4rem">'
+                             '⚠ Keras mismatch. Run:<br>'
+                             '<code style="background:#0a1018;padding:1px 4px;font-size:.54rem">pip install tf-keras</code>'
+                             '</span>') if is_mm else ''
+                st.markdown(f'<div class="ad" style="font-size:.6rem">✗ MODEL ERROR<br>'
+                            f'<span style="font-size:.56rem;opacity:.8">{short_err}</span>{hint}</div>',
+                            unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="ad" style="font-size:.6rem">✗ NOT FOUND<br>'
+                        f'<span style="font-size:.54rem;opacity:.6">{os.path.basename(resolved_model)}</span></div>',
+                        unsafe_allow_html=True)
+
+        st.markdown('<div style="height:.25rem"></div>', unsafe_allow_html=True)
+
+        # CSV
+        if os.path.exists(resolved_csv):
+            try:
+                info_df = load_csv(resolved_csv)
+                st.markdown(f'<div class="as">✓ DATABASE · {len(info_df)} records</div>', unsafe_allow_html=True)
+            except Exception as e:
+                st.markdown(f'<div class="ad" style="font-size:.6rem">✗ CSV ERROR<br>{str(e)[:60]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="ad" style="font-size:.6rem">✗ CSV NOT FOUND</div>', unsafe_allow_html=True)
+
+        st.markdown('<div style="height:.25rem"></div>', unsafe_allow_html=True)
+
+        # Class names
+        if os.path.exists(resolved_cn):
+            with open(resolved_cn) as f:
+                names = [l.strip() for l in f if l.strip()]
+            class_names_map = {i: n for i, n in enumerate(names)}
+            st.markdown(f'<div class="as">✓ CLASSES · {len(class_names_map)}</div>', unsafe_allow_html=True)
+        elif model_loaded and info_df is not None:
+            names = list(info_df['name'].str.strip())
+            class_names_map = {i: n for i, n in enumerate(names)}
+            st.markdown('<div class="aw" style="font-size:.6rem">⚠ Using CSV order</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="ad" style="font-size:.6rem">✗ CLASS NAMES NOT FOUND</div>', unsafe_allow_html=True)
+
+        st.markdown('<hr>', unsafe_allow_html=True)
+
+        if st.button("🔄  RELOAD MODEL", key="reload_mdl"):
+            load_model.clear()
+            load_csv.clear()
+            st.rerun()
+
+        if st.button("🗑  CLEAR RESULTS", key="clr"):
+            for k in ['up_res', 'cam_res']:
+                if k in st.session_state:
+                    del st.session_state[k]
+            st.rerun()
+
+        st.markdown('<hr>', unsafe_allow_html=True)
+        st.markdown("""
+<div style="font-family:var(--mono);font-size:.48rem;color:#172030;text-align:center;line-height:2.2">
+  CRIMINALID v2.0<br>FACE RECOGNITION SYSTEM<br>TensorFlow · OpenCV · Streamlit
+</div>""", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
-# ────────────────────────────────────────────
-#  TAB 1 — UPLOAD
-# ────────────────────────────────────────────
-with tab1:
-    st.markdown('<div style="height:.7rem"></div>', unsafe_allow_html=True)
-    L, R = st.columns([1,1], gap="large")
+# ── MAIN WORKSPACE ──
+with col_main:
+    st.markdown('<div style="padding:0 1.2rem">', unsafe_allow_html=True)
 
-    with L:
-        st.markdown('<span class="slbl">INPUT — UPLOAD SUSPECT IMAGE</span>', unsafe_allow_html=True)
-        uploaded = st.file_uploader("Drop image here", type=["jpg","jpeg","png","webp"], key="upl")
+    tab1, tab2, tab3 = st.tabs([
+        "  📁  UPLOAD IMAGE  ",
+        "  📷  WEBCAM  ",
+        "  📊  DATABASE  "
+    ])
 
-        if uploaded:
-            img_pil = Image.open(uploaded).convert("RGB")
-            img_rgb = np.array(img_pil)
+    # ── TAB 1 — UPLOAD ──
+    with tab1:
+        st.markdown('<div style="height:.7rem"></div>', unsafe_allow_html=True)
+        L, R = st.columns([1,1], gap="large")
 
-            if st.button("⚡  RUN IDENTIFICATION", key="run1"):
-                if not model_loaded:
-                    st.markdown('<div class="ad">⚠ &nbsp;MODEL NOT LOADED — configure in sidebar</div>', unsafe_allow_html=True)
-                elif not class_names_map:
-                    st.markdown('<div class="ad">⚠ &nbsp;CLASS NAMES MISSING — configure in sidebar</div>', unsafe_allow_html=True)
+        with L:
+            st.markdown('<span class="slbl">INPUT — UPLOAD SUSPECT IMAGE</span>', unsafe_allow_html=True)
+            uploaded = st.file_uploader("Drop image here", type=["jpg","jpeg","png","webp"], key="upl")
+
+            if uploaded:
+                img_pil = Image.open(uploaded).convert("RGB")
+                img_rgb = np.array(img_pil)
+
+                if st.button("⚡  RUN IDENTIFICATION", key="run1"):
+                    if not model_loaded:
+                        st.markdown('<div class="ad">⚠ &nbsp;MODEL NOT LOADED — open config panel (☰)</div>', unsafe_allow_html=True)
+                    elif not class_names_map:
+                        st.markdown('<div class="ad">⚠ &nbsp;CLASS NAMES MISSING</div>', unsafe_allow_html=True)
+                    else:
+                        with st.spinner("Analyzing image..."):
+                            st.markdown('<div class="pbar"></div>', unsafe_allow_html=True)
+                            time.sleep(0.3)
+                            faces = detect_face(img_rgb)
+                        if len(faces) == 0:
+                            st.markdown('<div class="ad">❌ &nbsp;NO FACE DETECTED<br><span style="font-size:.68rem;opacity:.7">Ensure face is clearly visible and well-lit.</span></div>', unsafe_allow_html=True)
+                            st.session_state['up_res'] = (img_rgb, None, 0.0)
+                        else:
+                            x,y,w,h = sorted(faces, key=lambda f:f[2]*f[3], reverse=True)[0]
+                            pad = int(0.15*w)
+                            x1 = max(0,x-pad); y1 = max(0,y-pad)
+                            x2 = min(img_rgb.shape[1],x+w+pad); y2 = min(img_rgb.shape[0],y+h+pad)
+                            crop = img_rgb[y1:y2,x1:x2]
+                            name, conf = predict_face(model, crop, class_names_map)
+                            c   = (230,57,70) if conf>=threshold else (74,96,112)
+                            lbl = f"{name.replace('_',' ')}  {int(conf*100)}%" if conf>=threshold else f"Unknown  {int(conf*100)}%"
+                            st.session_state['up_res'] = (draw_box(img_rgb,[(x,y,w,h)],lbl,c), name, conf)
+
+                if 'up_res' in st.session_state:
+                    st.image(st.session_state['up_res'][0], width=250)
                 else:
-                    with st.spinner("Analyzing image..."):
+                    st.image(img_rgb, width=250)
+            else:
+                st.markdown('<div class="emt"><div class="emi">📷</div><div class="emtxt">AWAITING INPUT IMAGE<br><span style="font-size:.52rem;opacity:.45">JPG · JPEG · PNG · WEBP</span></div></div>', unsafe_allow_html=True)
+
+        with R:
+            st.markdown('<span class="slbl">OUTPUT — IDENTIFICATION RESULT</span>', unsafe_allow_html=True)
+            if 'up_res' in st.session_state:
+                _, name, conf = st.session_state['up_res']
+                if name:
+                    render_profile(name, conf, threshold, info_df)
+                else:
+                    st.markdown('<div class="ad">❌ &nbsp;No face detected — cannot identify</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="emt"><div class="emi">🧾</div><div class="emtxt">RESULT WILL APPEAR HERE<br><span style="font-size:.52rem;opacity:.45">Upload an image and click Run</span></div></div>', unsafe_allow_html=True)
+
+    # ── TAB 2 — WEBCAM ──
+    with tab2:
+        st.markdown('<div style="height:.7rem"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="ai" style="margin-bottom:1rem">📷 &nbsp;Click <strong>Allow</strong> when your browser asks for camera access &nbsp;·&nbsp; Then click <strong>Take Photo</strong> to identify automatically</div>', unsafe_allow_html=True)
+
+        L2, R2 = st.columns([1,1], gap="large")
+        with L2:
+            st.markdown('<span class="slbl">INPUT — LIVE WEBCAM CAPTURE</span>', unsafe_allow_html=True)
+            cam = st.camera_input("cam", label_visibility="collapsed")
+
+            if cam:
+                img_pil = Image.open(cam).convert("RGB")
+                img_rgb = np.array(img_pil)
+                if not model_loaded:
+                    st.markdown('<div class="ad">⚠ &nbsp;MODEL NOT LOADED — open config panel (☰)</div>', unsafe_allow_html=True)
+                elif not class_names_map:
+                    st.markdown('<div class="ad">⚠ &nbsp;CLASS NAMES MISSING</div>', unsafe_allow_html=True)
+                else:
+                    with st.spinner("Analyzing..."):
                         st.markdown('<div class="pbar"></div>', unsafe_allow_html=True)
-                        time.sleep(0.3)
+                        time.sleep(0.2)
                         faces = detect_face(img_rgb)
                     if len(faces) == 0:
-                        st.markdown('<div class="ad">❌ &nbsp;NO FACE DETECTED<br><span style="font-size:.68rem;opacity:.7">Ensure subject\'s face is clearly visible and well-lit.</span></div>', unsafe_allow_html=True)
-                        st.session_state['up_res'] = (img_rgb, None, 0.0)
+                        st.markdown('<div class="ad">❌ &nbsp;NO FACE DETECTED — try different angle or lighting</div>', unsafe_allow_html=True)
+                        st.session_state['cam_res'] = None
                     else:
                         x,y,w,h = sorted(faces, key=lambda f:f[2]*f[3], reverse=True)[0]
                         pad = int(0.15*w)
-
-                        x1 = max(0,x - pad)
-                        y1 = max(0,y - pad)
-                        x2 = min(img_rgb.shape[1], x + w + pad)
-                        y2 = min(img_rgb.shape[0], y + h + pad)
+                        x1 = max(0,x-pad); y1 = max(0,y-pad)
+                        x2 = min(img_rgb.shape[1],x+w+pad); y2 = min(img_rgb.shape[0],y+h+pad)
                         crop = img_rgb[y1:y2,x1:x2]
                         name, conf = predict_face(model, crop, class_names_map)
-                        c = (230,57,70) if conf>=threshold else (74,96,112)
+                        st.markdown(f"<div style='font-family:monospace;color:#7b9cff;font-size:.7rem'>RAW CONFIDENCE: {round(conf,4)}</div>", unsafe_allow_html=True)
+                        c   = (230,57,70) if conf>=threshold else (74,96,112)
                         lbl = f"{name.replace('_',' ')}  {int(conf*100)}%" if conf>=threshold else f"Unknown  {int(conf*100)}%"
-                        st.session_state['up_res'] = (draw_box(img_rgb,[(x,y,w,h)],lbl,c), name, conf)
+                        st.image(draw_box(img_rgb,[(x,y,w,h)],lbl,c), use_container_width=True)
+                        st.session_state['cam_res'] = (name, conf)
 
-            if 'up_res' in st.session_state:
-                st.image(st.session_state['up_res'][0], width=250)
-            else:
-                st.image(img_rgb, width=250)
-        else:
-            st.markdown('<div class="emt"><div class="emi">📷</div><div class="emtxt">AWAITING INPUT IMAGE<br><span style="font-size:.52rem;opacity:.45">JPG · JPEG · PNG · WEBP</span></div></div>', unsafe_allow_html=True)
-
-    with R:
-        st.markdown('<span class="slbl">OUTPUT — IDENTIFICATION RESULT</span>', unsafe_allow_html=True)
-        if 'up_res' in st.session_state:
-            _, name, conf = st.session_state['up_res']
-            if name:
+        with R2:
+            st.markdown('<span class="slbl">OUTPUT — IDENTIFICATION RESULT</span>', unsafe_allow_html=True)
+            if st.session_state.get('cam_res'):
+                name, conf = st.session_state['cam_res']
                 render_profile(name, conf, threshold, info_df)
             else:
-                st.markdown('<div class="ad">❌ &nbsp;No face detected — cannot identify</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="emt"><div class="emi">🧾</div><div class="emtxt">RESULT WILL APPEAR HERE<br><span style="font-size:.52rem;opacity:.45">Upload an image and click Run</span></div></div>', unsafe_allow_html=True)
+                st.markdown('<div class="emt"><div class="emi">🎯</div><div class="emtxt">AWAITING WEBCAM CAPTURE<br><span style="font-size:.52rem;opacity:.45">Take a photo to run identification</span></div></div>', unsafe_allow_html=True)
 
+    # ── TAB 3 — DATABASE ──
+    with tab3:
+        st.markdown('<div style="height:.7rem"></div>', unsafe_allow_html=True)
+        st.markdown('<span class="slbl">CRIMINAL DATABASE — ALL RECORDS</span>', unsafe_allow_html=True)
 
-# ────────────────────────────────────────────
-#  TAB 2 — WEBCAM
-# ────────────────────────────────────────────
-with tab2:
-    st.markdown('<div style="height:.7rem"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="ai" style="margin-bottom:1rem">📷 &nbsp;Click <strong>Allow</strong> when your browser asks for camera access &nbsp;·&nbsp; Then click <strong>Take Photo</strong> to capture and identify automatically</div>', unsafe_allow_html=True)
+        if info_df is not None:
+            total      = len(info_df)
+            wanted     = len(info_df[info_df['status'].str.lower().str.contains('wanted',   na=False)]) if 'status' in info_df.columns else 0
+            arrested   = len(info_df[info_df['status'].str.lower().str.contains('arrested', na=False)]) if 'status' in info_df.columns else 0
+            imprisoned = len(info_df[info_df['status'].str.lower().str.contains('imprison', na=False)]) if 'status' in info_df.columns else 0
 
-    L2, R2 = st.columns([1,1], gap="large")
-    with L2:
-        st.markdown('<span class="slbl">INPUT — LIVE WEBCAM CAPTURE</span>', unsafe_allow_html=True)
-        cam = st.camera_input("cam", label_visibility="collapsed")
-
-        if cam:
-            img_pil = Image.open(cam).convert("RGB")
-            img_rgb = np.array(img_pil)
-            if not model_loaded:
-                st.markdown('<div class="ad">⚠ &nbsp;MODEL NOT LOADED</div>', unsafe_allow_html=True)
-            elif not class_names_map:
-                st.markdown('<div class="ad">⚠ &nbsp;CLASS NAMES MISSING</div>', unsafe_allow_html=True)
-            else:
-                with st.spinner("Analyzing..."):
-                    st.markdown('<div class="pbar"></div>', unsafe_allow_html=True)
-                    time.sleep(0.2)
-                    faces = detect_face(img_rgb)
-                if len(faces) == 0:
-                    st.markdown('<div class="ad">❌ &nbsp;NO FACE DETECTED — try different angle or lighting</div>', unsafe_allow_html=True)
-                    st.session_state['cam_res'] = None
-                else:
-                    x,y,w,h = sorted(faces, key=lambda f:f[2]*f[3], reverse=True)[0]
-                    pad = int(0.15*w)
-
-                    x1 = max(0,x - pad)
-                    y1 = max(0,y - pad)
-                    x2 = min(img_rgb.shape[1], x + w + pad)
-                    y2 = min(img_rgb.shape[0], y + h + pad)
-                    crop = img_rgb[y1:y2,x1:x2]
-                    name, conf = predict_face(model, crop, class_names_map)
-                    st.markdown(f"<div style='font-family:monospace;color:#7b9cff'>RAW CONFIDENCE: {round(conf,4)}</div>", unsafe_allow_html=True)
-                    c   = (230,57,70) if conf>=threshold else (74,96,112)
-                    lbl = f"{name.replace('_',' ')}  {int(conf*100)}%" if conf>=threshold else f"Unknown  {int(conf*100)}%"
-                    st.image(draw_box(img_rgb,[(x,y,w,h)],lbl,c), use_container_width=True)
-                    st.session_state['cam_res'] = (name, conf)
-
-    with R2:
-        st.markdown('<span class="slbl">OUTPUT — IDENTIFICATION RESULT</span>', unsafe_allow_html=True)
-        if st.session_state.get('cam_res'):
-            name, conf = st.session_state['cam_res']
-            render_profile(name, conf, threshold, info_df)
-        else:
-            st.markdown('<div class="emt"><div class="emi">🎯</div><div class="emtxt">AWAITING WEBCAM CAPTURE<br><span style="font-size:.52rem;opacity:.45">Take a photo to run identification</span></div></div>', unsafe_allow_html=True)
-
-
-# ────────────────────────────────────────────
-#  TAB 3 — DATABASE
-# ────────────────────────────────────────────
-with tab3:
-    st.markdown('<div style="height:.7rem"></div>', unsafe_allow_html=True)
-    st.markdown('<span class="slbl">CRIMINAL DATABASE — ALL RECORDS</span>', unsafe_allow_html=True)
-
-    if info_df is not None:
-        total      = len(info_df)
-        wanted     = len(info_df[info_df['status'].str.lower().str.contains('wanted',   na=False)]) if 'status' in info_df.columns else 0
-        arrested   = len(info_df[info_df['status'].str.lower().str.contains('arrested', na=False)]) if 'status' in info_df.columns else 0
-        imprisoned = len(info_df[info_df['status'].str.lower().str.contains('imprison', na=False)]) if 'status' in info_df.columns else 0
-
-        # Stat boxes
-        c1,c2,c3,c4 = st.columns(4)
-        for col_ui, val, lbl, col_hex in [
-            (c1, total,      "TOTAL RECORDS", "#4361ee"),
-            (c2, wanted,     "WANTED",         "#e63946"),
-            (c3, arrested,   "ARRESTED",       "#f4a261"),
-            (c4, imprisoned, "IMPRISONED",     "#2ec4b6"),
-        ]:
-            col_ui.markdown(f"""
+            c1,c2,c3,c4 = st.columns(4)
+            for col_ui, val, lbl, col_hex in [
+                (c1, total,      "TOTAL RECORDS", "#4361ee"),
+                (c2, wanted,     "WANTED",        "#e63946"),
+                (c3, arrested,   "ARRESTED",      "#f4a261"),
+                (c4, imprisoned, "IMPRISONED",    "#2ec4b6"),
+            ]:
+                col_ui.markdown(f"""
 <div class="mbox" style="border-color:{col_hex}22">
   <div style="position:absolute;top:0;left:0;right:0;height:2px;background:{col_hex}"></div>
   <span class="mval" style="color:{col_hex}">{val}</span>
   <span class="mlbl">{lbl}</span>
 </div>""", unsafe_allow_html=True)
 
-        st.markdown('<div style="height:.7rem"></div>', unsafe_allow_html=True)
-
-        search = st.text_input("🔎  SEARCH RECORDS",
-                               placeholder="Filter by name, crime, status...",
-                               key="dbs", label_visibility="visible")
-        filtered = info_df
-        if search:
-            mask     = info_df.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)
-            filtered = info_df[mask]
-
-        # ── KEY FIX: pass HTML to st.markdown with unsafe_allow_html=True ──
-        st.markdown(build_table(filtered), unsafe_allow_html=True)
-
-        st.markdown(f"""
+            st.markdown('<div style="height:.7rem"></div>', unsafe_allow_html=True)
+            search = st.text_input("🔎  SEARCH RECORDS", placeholder="Filter by name, crime, status...", key="dbs", label_visibility="visible")
+            filtered = info_df
+            if search:
+                mask = info_df.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)
+                filtered = info_df[mask]
+            st.markdown(build_table(filtered), unsafe_allow_html=True)
+            st.markdown(f"""
 <div style="font-family:var(--mono);font-size:.55rem;color:var(--dim);text-align:right;margin-top:.5rem">
   SHOWING {len(filtered)} OF {total} RECORDS &nbsp;·&nbsp; CLICK ANY ROW OR 👁 VIEW TO OPEN FULL PROFILE
 </div>""", unsafe_allow_html=True)
 
-    else:
-        st.markdown('<div class="ad">⚠ &nbsp;DATABASE NOT LOADED<br><span style="font-size:.68rem;opacity:.7">Set the CSV path in the sidebar and ensure the file exists.</span></div>', unsafe_allow_html=True)
-        st.markdown("""
+        else:
+            st.markdown('<div class="ad">⚠ &nbsp;DATABASE NOT LOADED<br><span style="font-size:.68rem;opacity:.7">Open config panel (☰) and set the CSV path.</span></div>', unsafe_allow_html=True)
+            st.markdown("""
 <div class="card" style="margin-top:1.2rem">
   <div style="font-family:var(--mono);font-size:.55rem;color:var(--dim);letter-spacing:2px;margin-bottom:.8rem">REQUIRED CSV FORMAT</div>
   <div style="font-family:var(--mono);font-size:.68rem;color:#3a5060;line-height:2.2;background:#080b0f;padding:1rem;border-radius:4px">
     name, full_name, crime, status, age, gender, nationality, last_seen, description<br>
-    John_Doe, John Doe, Armed Robbery, Wanted, 34, Male, Indian, Mumbai 2024, Dangerous armed robber<br>
-    Jane_Smith, Jane Smith, Fraud, Arrested, 28, Female, Indian, Pune 2023, White collar fraud
+    John_Doe, John Doe, Armed Robbery, Wanted, 34, Male, Indian, Mumbai 2024, Dangerous armed robber
   </div>
   <div style="font-family:var(--mono);font-size:.58rem;color:#2a3a4a;margin-top:.7rem">
     ⚠ The 'name' column must exactly match your dataset folder names
   </div>
 </div>""", unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
