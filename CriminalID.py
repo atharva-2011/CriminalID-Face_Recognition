@@ -1,6 +1,3 @@
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -8,6 +5,7 @@ import cv2
 from PIL import Image
 import tensorflow as tf
 import time
+import os
 import base64
 import json
 
@@ -45,23 +43,14 @@ st.markdown("""
 html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!important;font-family:var(--body)!important}
 .stApp{background:var(--bg)!important}
 #MainMenu,footer{visibility:hidden}
-.block-container{padding:0 1.5rem 3rem!important}
+header[data-testid="stHeader"]{visibility:hidden;height:0;min-height:0}
+.block-container{padding:0 1.5rem 3rem!important;max-width:100%!important;margin-top:0!important}
 
 /* scanline */
 .stApp::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:9999}
 
 /* ── Sidebar ── */
-[data-testid="stSidebar"]{
-background:linear-gradient(180deg,#090d12,#060911)!important;
-border-right:1px solid var(--bdr)!important;
-width:260px!important;
-overflow:auto!important;
-}
-[data-testid="collapsedControl"]{
-    display:block !important;
-    visibility:visible !important;
-    opacity:1 !important;
-}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#090d12,#060911)!important;border-right:1px solid var(--bdr)!important}
 [data-testid="stSidebar"] *{color:var(--txt)!important}
 [data-testid="stSidebar"] input{background:var(--bg3)!important;border:1px solid var(--bdr)!important;color:var(--txt)!important;font-family:var(--mono)!important;font-size:.72rem!important;border-radius:4px!important;cursor:text!important}
 [data-testid="stSidebar"] input:focus{border-color:var(--red)!important;outline:none!important}
@@ -225,6 +214,11 @@ overflow:auto!important;
 ::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:rgba(230,57,70,.4)}
 
+/* ── Custom Sidebar Toggle ── */
+.sb-toggle{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.35);border-radius:5px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;z-index:1}
+.sb-toggle:hover{background:rgba(230,57,70,.28);border-color:var(--red);box-shadow:0 0 12px rgba(230,57,70,.25)}
+.sb-toggle svg{width:16px;height:16px;fill:none;stroke:var(--red);stroke-width:2;stroke-linecap:round}
+
 hr{border:none!important;border-top:1px solid var(--bdr)!important;margin:.7rem 0!important}
 .stSpinner>div{border-top-color:var(--red)!important}
 </style>
@@ -296,43 +290,139 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()
 #  HELPERS
 # ══════════════════════════════════════════════════════════════════════════
 
-@st.cache_resource
-def warmup_model(model):
-    dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
-    model(dummy,training=False)
+@st.cache_resource(show_spinner=False)
+def load_model(path):
+    """
+    Robust multi-strategy model loader.
 
-@st.cache_resource
-def load_model_cached(path):
-    model = keras.models.load_model(path, compile=False)
-    model.trainable = False
-    return model
+    The 'Input 0 with name input_layer_N of layer functional_...' error means
+    the .keras file was saved with Keras 2 (TF ≤ 2.15) but is being loaded by
+    Keras 3 (TF ≥ 2.16), or vice versa.  We try every known strategy in order
+    so the app works regardless of which TF version is installed.
 
-@st.cache_data
+    Strategy order:
+      1. tf_keras (standalone tf-keras package, always Keras 2 — most compatible)
+      2. tf.keras compile=False  (standard, suppresses optimizer mismatch)
+      3. tf.keras compile=True   (standard, full load)
+      4. Legacy H5 / SavedModel via tf.saved_model.load
+      5. Force Keras 2 via environment flag (TF 2.16+ with keras 2 compat layer)
+    """
+    abs_path = os.path.abspath(path)
+    if not os.path.exists(abs_path):
+        raise FileNotFoundError(f"Model file not found: {abs_path}")
+
+    os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+
+    last_exc = None
+
+    # ── Strategy 1: tf_keras (pip install tf-keras) ──
+    # This is the Keras 2 compatibility package for TF 2.16+.
+    # If it's installed, it's the most reliable loader for models
+    # trained with the old tf.keras API.
+    try:
+        import tf_keras
+        mdl = tf_keras.models.load_model(abs_path, compile=False)
+        return mdl
+    except ImportError:
+        pass  # tf_keras not installed — try next strategy
+    except Exception as e:
+        last_exc = e
+
+    # ── Strategy 2: Standard tf.keras, compile=False ──
+    try:
+        mdl = tf.keras.models.load_model(abs_path, compile=False)
+        return mdl
+    except Exception as e:
+        last_exc = e
+
+    # ── Strategy 3: Standard tf.keras, compile=True ──
+    try:
+        mdl = tf.keras.models.load_model(abs_path)
+        return mdl
+    except Exception as e:
+        last_exc = e
+
+    # ── Strategy 4: Force Keras 2 compat via env var (TF 2.16+) ──
+    # TF 2.16+ ships with Keras 3 by default but has a compat flag.
+    try:
+        import os as _os
+        _os.environ["TF_USE_LEGACY_KERAS"] = "1"
+        import importlib
+        # Need to reload tf.keras after setting the flag
+        if hasattr(tf, "keras"):
+            importlib.reload(tf.keras)
+        mdl = tf.keras.models.load_model(abs_path, compile=False)
+        return mdl
+    except Exception as e:
+        last_exc = e
+
+    # ── Strategy 5: tf.saved_model.load (works for SavedModel format) ──
+    try:
+        mdl = tf.saved_model.load(abs_path)
+        return mdl
+    except Exception as e:
+        last_exc = e
+
+    # All strategies failed — raise the most recent error with a helpful message
+    raise RuntimeError(
+        f"Could not load model after trying all strategies.\n"
+        f"Last error: {last_exc}\n\n"
+        f"LIKELY FIX: Your model was saved with Keras 2 (TF ≤ 2.15) but you "
+        f"are running TF 2.16+.  Run:  pip install tf-keras  in your environment "
+        f"and restart the app."
+    )
+
+
+@st.cache_data(show_spinner=False)
 def load_csv(path):
-    return pd.read_csv(path)
+    abs_path = os.path.abspath(path)
+    if not os.path.exists(abs_path):
+        raise FileNotFoundError(f"CSV not found: {abs_path}")
+    return pd.read_csv(abs_path)
 
 
-@st.cache_resource
-def load_cascades():
-    cascades = []
-    for xml in [
-        "haarcascade_frontalface_default.xml",
-        "haarcascade_frontalface_alt2.xml",
-        "haarcascade_profileface.xml"
-    ]:
-        cascades.append(cv2.CascadeClassifier(cv2.data.haarcascades + xml))
-    return cascades
+def get_model_info(mdl):
+    """Safely extract (num_classes, input_h, input_w) from a loaded model."""
+    # --- output classes ---
+    try:
+        out_shape = mdl.output_shape
+        # Could be a list for multi-output models; take the last element
+        if isinstance(out_shape, list):
+            out_shape = out_shape[-1]
+        num_classes = out_shape[-1]
+    except Exception:
+        num_classes = "?"
 
+    # --- input spatial size ---
+    try:
+        in_shape = mdl.input_shape
+        if isinstance(in_shape, list):
+            in_shape = in_shape[0]
+        # shape is (batch, H, W, C) or (batch, C, H, W)
+        h = in_shape[1] if in_shape[1] not in (None, 3) else None
+        w = in_shape[2] if in_shape[2] not in (None, 3) else None
+        # If dynamic (None), default to MobileNetV2 standard
+        h = h or 224
+        w = w or 224
+    except Exception:
+        h, w = 224, 224
+
+    return num_classes, int(h), int(w)
 
 def detect_face(img_rgb):
     gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-    cascades = load_cascades()
-
-    for cc in cascades:
-        faces = cc.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=9, minSize=(60,60))
-        if len(faces) > 0:
-            return faces
-
+    # Apply CLAHE to improve detection in low-light / low-contrast images
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    gray_eq = clahe.apply(gray)
+    for xml in ['haarcascade_frontalface_default.xml',
+                'haarcascade_frontalface_alt2.xml',
+                'haarcascade_profileface.xml']:
+        cc = cv2.CascadeClassifier(cv2.data.haarcascades + xml)
+        # Try enhanced image first, fall back to original
+        for img_try in [gray_eq, gray]:
+            faces = cc.detectMultiScale(img_try, scaleFactor=1.05, minNeighbors=3, minSize=(40,40))
+            if len(faces) > 0:
+                return faces
     return []
 
 def draw_box(img, faces, label, color):
@@ -344,28 +434,42 @@ def draw_box(img, faces, label, color):
         cv2.putText(out,label,(x+4,y-5),cv2.FONT_HERSHEY_SIMPLEX,0.58,(255,255,255),2)
     return out
 
+try:
+    from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as _mobilenet_preprocess
+    _HAS_MOBILENET_PREPROCESS = True
+except ImportError:
+    _HAS_MOBILENET_PREPROCESS = False
+
+
 def predict_face(model, crop, cnames):
-    # Auto-detect input size from model
-    try:
-        h = model.input_shape[1] or 96
-        w = model.input_shape[2] or 96
-    except Exception:
-        h, w = 96, 96
+    """
+    Predict identity from a cropped face.
+    Handles both standard Keras models (.predict) and raw SavedModel
+    objects returned by tf.saved_model.load (callable with __call__).
+    Input size is read from the model where possible; defaults to 224×224
+    (MobileNetV2 standard).
+    """
+    _, h, w = get_model_info(model)
 
-    img = cv2.resize(crop, (w, h)).astype(np.float32)
+    img = np.array(Image.fromarray(crop).resize((w, h))).astype(np.float32)
 
-    # MobileNetV2 uses preprocess_input (scales to [-1,1]), NOT /255.0
-    # This matches exactly how the training notebook preprocessed images
-    try:
-        from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobilenet_preprocess
-        img = mobilenet_preprocess(img)
-    except Exception:
-        img = img / 255.0   # fallback for custom CNN models
+    if _HAS_MOBILENET_PREPROCESS:
+        img = _mobilenet_preprocess(img)
+    else:
+        img = img / 255.0
 
-    preds = model(np.expand_dims(img, 0), training=False).numpy()[0]
-    idx = int(np.argmax(preds))
-    conf = float(np.clip(preds[idx], 0, 1))
-    name  = cnames.get(idx,"Unknown")
+    batch = np.expand_dims(img, 0)
+
+    # Keras model (has .predict)
+    if hasattr(model, "predict"):
+        preds = model.predict(batch, verbose=0)[0]
+    else:
+        # Raw SavedModel callable — call directly as a tf function
+        preds = model(tf.constant(batch, dtype=tf.float32)).numpy()[0]
+
+    idx  = int(np.argmax(preds))
+    conf = float(preds[idx])
+    name = cnames.get(idx, "Unknown")
     return name, conf
 
 def sbadge(status):
@@ -414,6 +518,8 @@ def render_profile(name, conf, thr, df):
                 else:                               v = f'<span class="pv">{val}</span>'
                 html += f'<div class="prow"><span class="pk">{key}</span>{v}</div>'
             st.markdown(html, unsafe_allow_html=True)
+            # Cross-link hint to database tab
+            st.markdown('<div class="ai" style="margin-top:.9rem;font-size:.62rem">💡 &nbsp;Open <strong>DATABASE</strong> tab to view full records &amp; search all criminals</div>', unsafe_allow_html=True)
         else:
             st.markdown('<div class="ai" style="margin-top:.8rem">No additional profile data in database.</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -518,47 +624,96 @@ with st.sidebar:
     info_df         = None
     class_names_map = {}
 
-    if os.path.exists(model_path):
+    # Resolve path relative to the script file so it works on Streamlit Cloud
+    # where the working directory may differ from the script directory
+    _script_dir = os.path.dirname(os.path.abspath(__file__))
+    resolved_model = model_path if os.path.isabs(model_path) else os.path.join(_script_dir, model_path)
+    resolved_csv   = csv_path   if os.path.isabs(csv_path)   else os.path.join(_script_dir, csv_path)
+    resolved_cn    = cn_path    if os.path.isabs(cn_path)    else os.path.join(_script_dir, cn_path)
+
+    if os.path.exists(resolved_model):
         try:
-            with st.spinner("Loading AI model..."):
-                model = load_model_cached(model_path)
-                # build model once
-                dummy = np.zeros((1,224,224,3), dtype=np.float32)
-                model(dummy)
-                print(model.input_shape)
-                warmup_model(model)
-            nc = model.output_shape[-1]
+            model = load_model(resolved_model)
+            num_classes, in_h, in_w = get_model_info(model)
             model_loaded = True
-            st.markdown(f'<div class="as">✓ &nbsp;MODEL LOADED &nbsp;·&nbsp; {nc} classes</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="as">✓ &nbsp;MODEL LOADED &nbsp;·&nbsp; {num_classes} classes &nbsp;·&nbsp; {in_h}×{in_w}px</div>',
+                unsafe_allow_html=True)
         except Exception as e:
-            st.markdown(f'<div class="ad">✗ MODEL ERROR<br><span style="font-size:.62rem">{str(e)[:55]}</span></div>', unsafe_allow_html=True)
+            err_msg = str(e)
+            short_err = err_msg[:160].replace('<', '&lt;').replace('>', '&gt;')
+
+            # Detect the Keras 2 vs Keras 3 version mismatch specifically
+            is_version_mismatch = any(kw in err_msg for kw in [
+                "input_layer", "functional_", "TF_USE_LEGACY_KERAS",
+                "Unable to load weights", "incompatible"
+            ])
+            hint = ""
+            if is_version_mismatch:
+                hint = (
+                    '<span style="font-size:.60rem;color:#f4a261;display:block;margin-top:.5rem;line-height:1.6">'
+                    '⚠ Keras version mismatch detected.<br>'
+                    'Your model was saved with a different TF/Keras version.<br>'
+                    '<strong>Fix:</strong> Run this in your terminal, then restart:<br>'
+                    '<code style="background:#0a1018;padding:2px 6px;border-radius:3px;font-size:.58rem">'
+                    'pip install tf-keras</code>'
+                    '</span>'
+                )
+            st.markdown(
+                f'<div class="ad">✗ MODEL LOAD ERROR<br>'
+                f'<span style="font-size:.60rem;opacity:.85;line-height:1.6;display:block;margin-top:.3rem">{short_err}</span>'
+                f'{hint}'
+                f'</div>',
+                unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="ad">✗ MODEL NOT FOUND<br><span style="font-size:.62rem;opacity:.7">{model_path}</span></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="ad">✗ MODEL FILE NOT FOUND<br>'
+            f'<span style="font-size:.60rem;opacity:.7;display:block;margin-top:.2rem">{resolved_model}</span>'
+            f'<span style="font-size:.56rem;opacity:.5;display:block;margin-top:.2rem">Place the .keras/.h5 file in the same folder as CriminalID.py</span>'
+            f'</div>',
+            unsafe_allow_html=True)
 
     st.markdown('<div style="height:.3rem"></div>', unsafe_allow_html=True)
 
-    if os.path.exists(csv_path):
+    if os.path.exists(resolved_csv):
         try:
-            info_df = load_csv(csv_path)
+            info_df = load_csv(resolved_csv)
             st.markdown(f'<div class="as">✓ &nbsp;DATABASE &nbsp;·&nbsp; {len(info_df)} records</div>', unsafe_allow_html=True)
         except Exception as e:
-            st.markdown(f'<div class="ad">✗ CSV ERROR<br><span style="font-size:.62rem">{str(e)[:55]}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="ad">✗ CSV ERROR<br><span style="font-size:.62rem">{str(e)[:80]}</span></div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="ad">✗ CSV NOT FOUND<br><span style="font-size:.62rem;opacity:.7">{csv_path}</span></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="ad">✗ CSV NOT FOUND<br><span style="font-size:.62rem;opacity:.7">{resolved_csv}</span></div>',
+            unsafe_allow_html=True)
 
     st.markdown('<div style="height:.3rem"></div>', unsafe_allow_html=True)
 
-    if os.path.exists(cn_path):
-        with open(cn_path) as f:
+    if os.path.exists(resolved_cn):
+        with open(resolved_cn) as f:
             names = [l.strip() for l in f if l.strip()]
         class_names_map = {i: n for i, n in enumerate(names)}
         st.markdown(f'<div class="as">✓ &nbsp;CLASS NAMES &nbsp;·&nbsp; {len(class_names_map)}</div>', unsafe_allow_html=True)
     elif model_loaded and info_df is not None:
         names = list(info_df['name'].str.strip())
         class_names_map = {i: n for i, n in enumerate(names)}
-        st.markdown('<div class="aw">⚠ Using CSV order as class names</div>', unsafe_allow_html=True)
+        st.markdown('<div class="aw">⚠ Using CSV row order as class names</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="ad">✗ CLASS NAMES NOT FOUND</div>', unsafe_allow_html=True)
+
+    st.markdown('<hr>', unsafe_allow_html=True)
+
+    # ── Reload Model (clears cache so path change takes effect) ──
+    if st.button("🔄  RELOAD MODEL", key="reload_mdl"):
+        load_model.clear()
+        load_csv.clear()
+        st.rerun()
+
+    # ── Clear session results ──
+    if st.button("🗑  CLEAR RESULTS", key="clr"):
+        for k in ['up_res', 'cam_res']:
+            if k in st.session_state:
+                del st.session_state[k]
+        st.rerun()
 
     st.markdown('<hr>', unsafe_allow_html=True)
     st.markdown("""
@@ -573,6 +728,9 @@ with st.sidebar:
 st.markdown(f"""
 <div class="banner">
   <div class="ctlx"></div><div class="cbrx"></div>
+  <div class="sb-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+    <svg viewBox="0 0 18 14"><line x1="1" y1="2" x2="17" y2="2"/><line x1="1" y1="7" x2="17" y2="7"/><line x1="1" y1="12" x2="17" y2="12"/></svg>
+  </div>
   <div class="b-logo">🔍</div>
   <div>
     <div class="b-title">CriminalID</div>
@@ -582,7 +740,25 @@ st.markdown(f"""
     <div class="b-badge">● SYSTEM ACTIVE</div>
     <div class="b-time">{time.strftime('%Y-%m-%d  %H:%M:%S')}</div>
   </div>
-</div>""", unsafe_allow_html=True)
+</div>
+
+<script>
+function toggleSidebar() {{
+    // Try Streamlit's built-in sidebar button first
+    var btn = window.parent.document.querySelector('[data-testid="collapsedControl"]') ||
+              window.parent.document.querySelector('button[kind="header"]') ||
+              window.parent.document.querySelector('[data-testid="stSidebarNavCollapseButton"]') ||
+              window.parent.document.querySelector('button[aria-label="Close sidebar"]') ||
+              window.parent.document.querySelector('button[aria-label="Open sidebar"]');
+    if (btn) {{ btn.click(); return; }}
+    // Fallback: toggle sidebar visibility directly
+    var sb = window.parent.document.querySelector('[data-testid="stSidebar"]');
+    if (sb) {{
+        var cur = sb.style.display;
+        sb.style.display = (cur === 'none') ? '' : 'none';
+    }}
+}}
+</script>""", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -609,8 +785,6 @@ with tab1:
         if uploaded:
             img_pil = Image.open(uploaded).convert("RGB")
             img_rgb = np.array(img_pil)
-            if img_rgb.shape[1] > 800:
-                img_rgb = cv2.resize(img_rgb, (800, int(img_rgb.shape[0] * 800 / img_rgb.shape[1])))
 
             if st.button("⚡  RUN IDENTIFICATION", key="run1"):
                 if not model_loaded:
@@ -626,7 +800,7 @@ with tab1:
                         st.markdown('<div class="ad">❌ &nbsp;NO FACE DETECTED<br><span style="font-size:.68rem;opacity:.7">Ensure subject\'s face is clearly visible and well-lit.</span></div>', unsafe_allow_html=True)
                         st.session_state['up_res'] = (img_rgb, None, 0.0)
                     else:
-                        x,y,w,h = max(faces, key=lambda f: f[2]*f[3])
+                        x,y,w,h = sorted(faces, key=lambda f:f[2]*f[3], reverse=True)[0]
                         pad = int(0.15*w)
 
                         x1 = max(0,x - pad)
@@ -673,7 +847,6 @@ with tab2:
         if cam:
             img_pil = Image.open(cam).convert("RGB")
             img_rgb = np.array(img_pil)
-            img_rgb = cv2.resize(img_rgb, (640, int(img_rgb.shape[0] * 640 / img_rgb.shape[1])))
             if not model_loaded:
                 st.markdown('<div class="ad">⚠ &nbsp;MODEL NOT LOADED</div>', unsafe_allow_html=True)
             elif not class_names_map:
@@ -687,7 +860,7 @@ with tab2:
                     st.markdown('<div class="ad">❌ &nbsp;NO FACE DETECTED — try different angle or lighting</div>', unsafe_allow_html=True)
                     st.session_state['cam_res'] = None
                 else:
-                    x,y,w,h = max(faces, key=lambda f: f[2]*f[3])
+                    x,y,w,h = sorted(faces, key=lambda f:f[2]*f[3], reverse=True)[0]
                     pad = int(0.15*w)
 
                     x1 = max(0,x - pad)
@@ -747,9 +920,7 @@ with tab3:
         filtered = info_df
         if search:
             mask     = info_df.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)
-            filtered = info_df[
-                info_df.astype(str).apply(lambda col: col.str.contains(search, case=False, na=False)).any(axis=1)
-            ]
+            filtered = info_df[mask]
 
         # ── KEY FIX: pass HTML to st.markdown with unsafe_allow_html=True ──
         st.markdown(build_table(filtered), unsafe_allow_html=True)
