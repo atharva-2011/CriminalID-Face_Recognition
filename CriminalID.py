@@ -19,7 +19,7 @@ st.set_page_config(
     page_title="CriminalID · Face Recognition",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -46,12 +46,10 @@ html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!importa
 /* scanline */
 .stApp::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:100}
 
-/* ── Sidebar ── */
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#090d12,#060911)!important;border-right:1px solid var(--bdr)!important}
-[data-testid="stSidebar"] *{color:var(--txt)!important}
-[data-testid="stSidebar"] input{background:var(--bg3)!important;border:1px solid var(--bdr)!important;color:var(--txt)!important;font-family:var(--mono)!important;font-size:.72rem!important;border-radius:4px!important}
-[data-testid="stSidebar"] input:focus{border-color:var(--red)!important;outline:none!important}
-[data-testid="stSidebar"] .stSlider *{cursor:pointer!important}
+/* ── Hide sidebar and its toggle completely ── */
+[data-testid="stSidebar"]{display:none!important}
+[data-testid="collapsedControl"]{display:none!important}
+button[data-testid="stSidebarCollapseButton"]{display:none!important}
 .banner-wrap{
     display:flex;align-items:stretch;border-bottom:2px solid var(--red);
     background:linear-gradient(135deg,#080b0f 0%,#0c1a28 45%,#080b0f 100%);
@@ -677,89 +675,46 @@ st.markdown(f"""
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  SIDEBAR — using native st.sidebar (clean, simple, works)
+#  CONFIG — hardcoded defaults, no sidebar, no panel
+#  Users change paths by editing these values directly in the file
 # ══════════════════════════════════════════════════════════════════════════
 _script_dir = os.path.dirname(os.path.abspath(__file__))
+
+model_path = "criminal_recognition_model.keras"
+csv_path   = "criminals_info.csv"
+cn_path    = "class_names.txt"
+threshold  = 0.80
 
 model_loaded    = False
 model           = None
 info_df         = None
 class_names_map = {}
-threshold       = 0.80
 
-with st.sidebar:
-    st.markdown('<span style="font-family:var(--mono);font-size:.6rem;color:var(--red);letter-spacing:3px;border-left:3px solid var(--red);padding-left:.6rem">⚙ SYSTEM CONFIGURATION</span>', unsafe_allow_html=True)
-    st.markdown('<div style="height:.5rem"></div>', unsafe_allow_html=True)
+resolved_model = os.path.join(_script_dir, model_path)
+resolved_csv   = os.path.join(_script_dir, csv_path)
+resolved_cn    = os.path.join(_script_dir, cn_path)
 
-    def slbl(t):
-        st.markdown(f'<span style="font-family:var(--mono);font-size:.56rem;color:var(--dim);letter-spacing:2px">{t}</span>', unsafe_allow_html=True)
+if os.path.exists(resolved_model):
+    try:
+        model = load_model(resolved_model)
+        num_classes, in_h, in_w = get_model_info(model)
+        model_loaded = True
+    except Exception:
+        pass
 
-    slbl("MODEL PATH")
-    model_path = st.text_input("mp", value="criminal_recognition_model.keras", label_visibility="collapsed")
-    slbl("DATABASE CSV")
-    csv_path   = st.text_input("cp", value="criminals_info.csv", label_visibility="collapsed")
-    slbl("CLASS NAMES FILE")
-    cn_path    = st.text_input("cn", value="class_names.txt", label_visibility="collapsed")
-    slbl("CONFIDENCE THRESHOLD")
-    threshold  = st.slider("thr", 0.50, 0.99, 0.80, 0.01, label_visibility="collapsed")
-    st.markdown(f'<div style="font-family:var(--mono);font-size:.56rem;color:var(--dim);text-align:center;margin-top:-.3rem">MIN {int(threshold*100)}% FOR POSITIVE ID</div>', unsafe_allow_html=True)
-    st.markdown('<hr>', unsafe_allow_html=True)
+if os.path.exists(resolved_csv):
+    try:
+        info_df = load_csv(resolved_csv)
+    except Exception:
+        pass
 
-    resolved_model = model_path if os.path.isabs(model_path) else os.path.join(_script_dir, model_path)
-    resolved_csv   = csv_path   if os.path.isabs(csv_path)   else os.path.join(_script_dir, csv_path)
-    resolved_cn    = cn_path    if os.path.isabs(cn_path)    else os.path.join(_script_dir, cn_path)
-
-    if os.path.exists(resolved_model):
-        try:
-            model = load_model(resolved_model)
-            num_classes, in_h, in_w = get_model_info(model)
-            model_loaded = True
-            st.markdown(f'<div class="as">✓ MODEL · {num_classes} cls · {in_h}×{in_w}</div>', unsafe_allow_html=True)
-        except Exception as e:
-            err = str(e)[:120].replace('<','&lt;').replace('>','&gt;')
-            is_mm = any(k in str(e) for k in ["input_layer","functional_","incompatible"])
-            hint = '<br><span style="color:#f4a261">pip install tf-keras</span>' if is_mm else ''
-            st.markdown(f'<div class="ad" style="font-size:.6rem">✗ MODEL ERROR<br>{err}{hint}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="ad" style="font-size:.6rem">✗ NOT FOUND: {os.path.basename(resolved_model)}</div>', unsafe_allow_html=True)
-
-    st.markdown('<div style="height:.25rem"></div>', unsafe_allow_html=True)
-
-    if os.path.exists(resolved_csv):
-        try:
-            info_df = load_csv(resolved_csv)
-            st.markdown(f'<div class="as">✓ DATABASE · {len(info_df)} records</div>', unsafe_allow_html=True)
-        except Exception as e:
-            st.markdown(f'<div class="ad" style="font-size:.6rem">✗ CSV ERROR: {str(e)[:60]}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="ad" style="font-size:.6rem">✗ CSV NOT FOUND</div>', unsafe_allow_html=True)
-
-    st.markdown('<div style="height:.25rem"></div>', unsafe_allow_html=True)
-
-    if os.path.exists(resolved_cn):
-        with open(resolved_cn) as f:
-            names = [l.strip() for l in f if l.strip()]
-        class_names_map = {i: n for i, n in enumerate(names)}
-        st.markdown(f'<div class="as">✓ CLASSES · {len(class_names_map)}</div>', unsafe_allow_html=True)
-    elif model_loaded and info_df is not None:
-        names = list(info_df['name'].str.strip())
-        class_names_map = {i: n for i, n in enumerate(names)}
-        st.markdown('<div class="aw" style="font-size:.6rem">⚠ Using CSV order</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="ad" style="font-size:.6rem">✗ CLASS NAMES NOT FOUND</div>', unsafe_allow_html=True)
-
-    st.markdown('<hr>', unsafe_allow_html=True)
-
-    if st.button("🔄  RELOAD MODEL", key="reload_mdl"):
-        load_model.clear(); load_csv.clear(); st.rerun()
-
-    if st.button("🗑  CLEAR RESULTS", key="clr"):
-        for k in ['up_res','cam_res']:
-            if k in st.session_state: del st.session_state[k]
-        st.rerun()
-
-    st.markdown('<hr>', unsafe_allow_html=True)
-    st.markdown('<div style="font-family:var(--mono);font-size:.48rem;color:#172030;text-align:center;line-height:2.2">CRIMINALID v2.0<br>TensorFlow · OpenCV · Streamlit</div>', unsafe_allow_html=True)
+if os.path.exists(resolved_cn):
+    with open(resolved_cn) as f:
+        names = [l.strip() for l in f if l.strip()]
+    class_names_map = {i: n for i, n in enumerate(names)}
+elif model_loaded and info_df is not None:
+    names = list(info_df['name'].str.strip())
+    class_names_map = {i: n for i, n in enumerate(names)}
 
 
 # ══════════════════════════════════════════════════════════════════════════
