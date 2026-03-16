@@ -11,8 +11,7 @@ import time
 import base64
 import json
 
-tf.config.threading.set_intra_op_parallelism_threads(1)
-tf.config.threading.set_inter_op_parallelism_threads(1)
+
 
 st.set_page_config(
     page_title="CriminalID · Face Recognition",
