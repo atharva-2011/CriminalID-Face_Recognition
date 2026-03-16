@@ -16,6 +16,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ── Sidebar toggle via session state ──
+if "sidebar_open" not in st.session_state:
+    st.session_state.sidebar_open = True
+
 # ══════════════════════════════════════════════════════════════════════════
 #  CSS
 # ══════════════════════════════════════════════════════════════════════════
@@ -42,26 +46,7 @@ st.markdown("""
 /* ── Global ── */
 html,body,[class*="css"]{background:var(--bg)!important;color:var(--txt)!important;font-family:var(--body)!important}
 .stApp{background:var(--bg)!important}
-#MainMenu,footer{visibility:hidden}
-/* Keep header transparent but functional */
-header[data-testid="stHeader"]{background:transparent!important;border:none!important}
-header[data-testid="stHeader"]::before{display:none!important}
-header[data-testid="stHeader"] > div:first-child{opacity:0!important;pointer-events:none!important}
-/* Native sidebar collapse/expand button — always visible, styled to match app */
-button[data-testid="collapsedControl"]{
-    opacity:1!important;pointer-events:auto!important;z-index:99999!important;
-    background:linear-gradient(135deg,#b91c1c,#e63946)!important;
-    border:none!important;border-radius:5px!important;
-    color:#fff!important;width:36px!important;height:36px!important;
-    box-shadow:0 4px 16px rgba(230,57,70,.4)!important;
-    transition:all .2s!important;
-}
-button[data-testid="collapsedControl"]:hover{
-    background:linear-gradient(135deg,#991b1b,#b91c1c)!important;
-    box-shadow:0 6px 20px rgba(230,57,70,.6)!important;
-    transform:scale(1.08)!important;
-}
-button[data-testid="collapsedControl"] svg{stroke:#fff!important;fill:#fff!important}
+#MainMenu,footer,header{visibility:hidden}
 .block-container{padding:0 1.5rem 3rem!important;max-width:100%!important;margin-top:0!important}
 
 /* scanline */
@@ -231,24 +216,6 @@ button[data-testid="collapsedControl"] svg{stroke:#fff!important;fill:#fff!impor
 ::-webkit-scrollbar-track{background:var(--bg2)}
 ::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:rgba(230,57,70,.4)}
-
-/* ── Sidebar native close button (×) — make it prominent ── */
-[data-testid="stSidebarCollapseButton"] button,
-button[data-testid="stSidebarCollapseButton"]{
-    background:rgba(230,57,70,.15)!important;
-    border:1px solid rgba(230,57,70,.4)!important;
-    border-radius:5px!important;
-    color:var(--red)!important;
-    opacity:1!important;
-    transition:all .2s!important;
-}
-[data-testid="stSidebarCollapseButton"] button:hover,
-button[data-testid="stSidebarCollapseButton"]:hover{
-    background:rgba(230,57,70,.3)!important;
-    border-color:var(--red)!important;
-}
-[data-testid="stSidebarCollapseButton"] svg,
-button[data-testid="stSidebarCollapseButton"] svg{stroke:var(--red)!important}
 
 hr{border:none!important;border-top:1px solid var(--bdr)!important;margin:.7rem 0!important}
 .stSpinner>div{border-top-color:var(--red)!important}
@@ -756,21 +723,62 @@ with st.sidebar:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  BANNER
+#  BANNER  (hamburger is a real st.button so it works on Streamlit Cloud)
 # ══════════════════════════════════════════════════════════════════════════
-st.markdown(f"""
-<div class="banner">
+
+# Hamburger button CSS — override the default red full-width button style just for this one
+st.markdown("""
+<style>
+div[data-testid="stHorizontalBlock"] div.stButton:first-child > button{
+    background:rgba(230,57,70,.12)!important;
+    border:1px solid rgba(230,57,70,.4)!important;
+    border-radius:5px!important;
+    width:42px!important;min-width:42px!important;max-width:42px!important;
+    height:42px!important;padding:0!important;
+    font-size:1.1rem!important;letter-spacing:0!important;
+    box-shadow:none!important;color:var(--red)!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+}
+div[data-testid="stHorizontalBlock"] div.stButton:first-child > button:hover{
+    background:rgba(230,57,70,.28)!important;
+    box-shadow:0 0 12px rgba(230,57,70,.3)!important;
+    transform:none!important;
+}
+</style>""", unsafe_allow_html=True)
+
+banner_left, banner_mid, banner_right = st.columns([0.04, 0.70, 0.26])
+
+with banner_left:
+    if st.button("☰", key="hamburger"):
+        st.session_state.sidebar_open = not st.session_state.sidebar_open
+        st.rerun()
+
+with banner_mid:
+    st.markdown(f"""
+<div class="banner" style="margin:0;border-bottom:none;padding:.6rem 1rem">
   <div class="ctlx"></div><div class="cbrx"></div>
   <div class="b-logo">🔍</div>
   <div>
     <div class="b-title">CriminalID</div>
     <div class="b-sub">Automated Face Recognition &amp; Identification System</div>
   </div>
-  <div class="b-right">
-    <div class="b-badge">● SYSTEM ACTIVE</div>
-    <div class="b-time">{time.strftime('%Y-%m-%d  %H:%M:%S')}</div>
-  </div>
 </div>""", unsafe_allow_html=True)
+
+with banner_right:
+    st.markdown(f"""
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;padding:.8rem 1rem">
+  <div class="b-badge">● SYSTEM ACTIVE</div>
+  <div class="b-time">{time.strftime('%Y-%m-%d  %H:%M:%S')}</div>
+</div>""", unsafe_allow_html=True)
+
+st.markdown('<div style="border-bottom:2px solid var(--red);margin-bottom:.5rem"></div>', unsafe_allow_html=True)
+
+# Show or hide sidebar based on session state
+if not st.session_state.sidebar_open:
+    st.markdown("""
+<style>
+[data-testid="stSidebar"]{display:none!important}
+</style>""", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════
